@@ -27,7 +27,6 @@ def extract_kgrid(filename,imageName):
 class kgrid(object):
     def __init__(self,KGRID_NAME):
         
-        
         kx=extract_kgrid(KGRID_NAME,'kx')
         ky=extract_kgrid(KGRID_NAME,'ky')
         k=extract_kgrid(KGRID_NAME,'k')

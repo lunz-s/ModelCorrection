@@ -5,7 +5,7 @@ import numpy
 import h5py
 
 
-def extract_images(filename,imageName):
+def extract_images(filename, imageName):
   """Extract the images into a 3D uint8 numpy array [index, y, x, depth]."""
   fData = h5py.File(filename,'r')
   inData = fData.get(imageName)  
@@ -23,8 +23,6 @@ def extract_images(filename,imageName):
 
 
 
-
-
 class DataSet(object):
 
   def __init__(self, dataApr,dataTru,imagTru):
@@ -36,8 +34,6 @@ class DataSet(object):
     self._dataApr = dataApr
     self._dataTru = dataTru
     self._imagTru = imagTru
-#    self._true = true
-#    self._grad = grad
     self._epochs_completed = 0
     self._index_in_epoch = 0
 
@@ -78,15 +74,15 @@ class DataSet(object):
       # Shuffle the data
       perm = numpy.arange(self._num_examples)
       numpy.random.shuffle(perm)
-      self._images = self._images[perm]
-      self._true = self._true[perm]
-      self._grad = self._grad[perm]
+      self._dataApr = self._dataApr[perm]
+      self._dataTru = self._dataTru[perm]
+      self._imagTru = self._imagTru[perm]
       # Start next epoch
       start = 0
       self._index_in_epoch = batch_size
       assert batch_size <= self._num_examples
     end = self._index_in_epoch
-    return self._images[start:end], self._true[start:end], self._grad[start:end]
+    return self._dataApr[start:end], self._dataTru[start:end], self._imagTru[start:end]
 
 
 def read_data_sets(testFileName):
@@ -94,22 +90,22 @@ def read_data_sets(testFileName):
     pass
   data_sets = DataSets()
 
-#  TRAIN_SET = trainFileName
+  # TRAIN_SET = trainFileName
   TEST_SET  = testFileName
   DATAA_NAME = 'dataApprox'
   DATAT_NAME = 'dataTrue'
   IMAGE_NAME = 'imagesTrue'
   
-  print('Start loading data')  
+  print('Start loading test data')
   test_dataApr = extract_images(TEST_SET,DATAA_NAME)
   test_dataTru   = extract_images(TEST_SET,DATAT_NAME)
   test_imagTru   = extract_images(TEST_SET,IMAGE_NAME)
 
   
-#  test_images = extract_images(TEST_SET,IMAGE_NAME)
+  # test_images = extract_images(TEST_SET,IMAGE_NAME)
   
 
-#  data_sets.train = DataSet(train_images, train_true, train_grad)
+  # data_sets.train = DataSet(train_images, train_true, train_grad)
   data_sets.test = DataSet(test_dataApr,test_dataTru,test_imagTru)
 
   return data_sets
