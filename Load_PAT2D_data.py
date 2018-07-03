@@ -37,6 +37,16 @@ class DataSet(object):
     self._epochs_completed = 0
     self._index_in_epoch = 0
 
+
+  def get_image_resolution(self):
+    shape = self._imagTru.shape
+    return (shape[1], shape[2])
+
+  def get_y_resolution(self):
+    shape = self._dataTru.shape
+    return (shape[1], shape[2])
+
+
   @property
   def dataApr(self):
     return self._dataApr
@@ -48,13 +58,6 @@ class DataSet(object):
   @property
   def imagTru(self):
     return self._imagTru
-#  @property
-#  def true(self):
-#    return self._true
-#
-#  @property
-#  def grad(self):
-#    return self._grad
 
   @property
   def num_examples(self):
@@ -85,12 +88,12 @@ class DataSet(object):
     return self._dataApr[start:end], self._dataTru[start:end], self._imagTru[start:end]
 
 
-def read_data_sets(testFileName):
+def read_data_sets(trainFileName, testFileName):
   class DataSets(object):
     pass
   data_sets = DataSets()
 
-  # TRAIN_SET = trainFileName
+  TRAIN_SET = trainFileName
   TEST_SET  = testFileName
   DATAA_NAME = 'dataApprox'
   DATAT_NAME = 'dataTrue'
@@ -100,12 +103,12 @@ def read_data_sets(testFileName):
   test_dataApr = extract_images(TEST_SET,DATAA_NAME)
   test_dataTru   = extract_images(TEST_SET,DATAT_NAME)
   test_imagTru   = extract_images(TEST_SET,IMAGE_NAME)
-
-  
-  # test_images = extract_images(TEST_SET,IMAGE_NAME)
-  
-
-  # data_sets.train = DataSet(train_images, train_true, train_grad)
   data_sets.test = DataSet(test_dataApr,test_dataTru,test_imagTru)
+
+  print('Start loading training data')
+  train_dataApr = extract_images(TRAIN_SET,DATAA_NAME)
+  train_dataTru   = extract_images(TRAIN_SET,DATAT_NAME)
+  train_imagTru   = extract_images(TRAIN_SET,IMAGE_NAME)
+  data_sets.train = DataSet(train_dataApr,train_dataTru,train_imagTru)
 
   return data_sets
