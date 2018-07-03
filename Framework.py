@@ -170,6 +170,3 @@ class framework(object):
             if k%20 == 0:
                 appr, true, image = self.data_sets.test.next_batch(batch_size)
                 self.cor_operator.log(true_data=true, apr_data=appr)
-
-
-
