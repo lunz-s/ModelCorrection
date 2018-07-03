@@ -36,9 +36,9 @@ class model_correction(object):
                 print(key + ' created')
 
     # save current model to data
-    def save(self, global_step):
+    def save(self):
         saver = tf.train.Saver()
-        saver.save(self.sess, self.path+'Data/model', global_step=global_step)
+        saver.save(self.sess, self.path+'Data/model', global_step=self.global_step)
         print('Progress saved')
 
     # load model from data
@@ -106,6 +106,13 @@ class model_correction(object):
         scalar_prod = tf.reduce_sum(tf.multiply(self.output, di))
         self.gradients = tf.gradients(scalar_prod, self.approximate_y)
 
+        # initializa variables
+        tf.global_variables_initializer().run()
+
+        # load in existing model
+        self.load()
+
+
     def evaluate(self, y):
         return self.sess.run(self.output, feed_dict={self.approximate_y: y})
 
@@ -170,3 +177,4 @@ class framework(object):
             if k%20 == 0:
                 appr, true, image = self.data_sets.test.next_batch(batch_size)
                 self.cor_operator.log(true_data=true, apr_data=appr)
+        self.cor_operator.save()
