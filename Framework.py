@@ -150,7 +150,7 @@ class deriv_op_adj(odl.Operator):
         self.out_sp = out_sp
         super(deriv_op_adj, self).__init__(inp_sp, out_sp)
 
-    def _call(self, x, *args, **kwargs):
+    def _call(self, x):
         der = self.model.differentiate(self.point, x)
         return self.out_sp.element(der)
 
@@ -162,7 +162,7 @@ class deriv_op(odl.Operator):
         self.out_sp = out_sp
         super(deriv_op, self).__init__(inp_sp, out_sp)
 
-    def _call(self, x, *args, **kwargs):
+    def _call(self, x):
         return self.out_sp.element(self.model.evaluate(x))
 
     def adjoint(self):
@@ -171,7 +171,7 @@ class deriv_op(odl.Operator):
 
 # get the learned model correction as odl operator
 class as_odl_operator(odl.Operator):
-    def _call(self, x, *args, **kwargs):
+    def _call(self, x):
         return self.output_space.element(self.np_model.evaluate(x))
 
     def derivative(self, point):
