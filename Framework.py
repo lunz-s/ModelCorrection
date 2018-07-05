@@ -31,6 +31,17 @@ class np_operator(object):
     def differentiate(self, point, direction):
         pass
 
+class PAT_operator(np_operator):
+    def __init__(self, PAT_OP, input_dim, output_dim):
+        self.PAT_OP = PAT_OP
+        super(PAT_operator, self).__init__(input_dim, output_dim)
+
+    def evaluate(self, y):
+        return self.PAT_OP.kspace_forward(y)
+
+    def differentiate(self, point, direction):
+        return self.PAT_OP.kspace_backward(direction)
+
 
 class model_correction(np_operator):
     # makes sure the folders needed for saving the model and logging data are in place
@@ -227,7 +238,8 @@ class framework(object):
         # initializing the PAT transform
         kgridBack = fpat.kgrid(data_path + 'kgrid_small.mat')
         kgridForw = fpat.kgrid(data_path + 'kgrid_smallForw.mat')
-        self.pat_operator = fpat.fastPAT(kgridBack, kgridForw, self.angle)
+        operator = fpat.fastPAT(kgridBack, kgridForw, self.angle)
+        self.pat_operator = PAT_operator(operator, self.image_size, self.measurement_size)
 
         # initialize the correction operator
         self.cor_operator = model_correction(self.path, self.measurement_size)
