@@ -176,6 +176,7 @@ class deriv_op(odl.Operator):
     def _call(self, x):
         return self.out_sp.element(self.model.evaluate(x))
 
+    @property
     def adjoint(self):
         return deriv_op_adj(inp_sp=self.out_sp, out_sp=self.inp_sp, np_model=self.model, point=self.point)
 
@@ -240,6 +241,7 @@ class framework(object):
         kgridForw = fpat.kgrid(data_path + 'kgrid_smallForw.mat')
         operator = fpat.fastPAT(kgridBack, kgridForw, self.angle)
         self.pat_operator = PAT_operator(operator, self.image_size, self.measurement_size)
+
 
         # initialize the correction operator
         self.cor_operator = model_correction(self.path, self.measurement_size)
