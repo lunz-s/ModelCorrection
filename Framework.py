@@ -150,7 +150,7 @@ class model_correction(np_operator):
 
     def evaluate(self, y):
         y, change = self.feedable_format(y)
-        result = self.sess.run(self.output, feed_dict={self.approximate_y: y})
+        result = self.sess.run(self.output, feed_dict={self.approximate_y: y})[...,0]
         if change:
             result = result[0,...]
         return result
@@ -158,7 +158,7 @@ class model_correction(np_operator):
     def differentiate(self, location, direction):
         location, change = self.feedable_format(location)
         direction, _  =self.feedable_format(direction)
-        result = self.sess.run(self.gradients, feed_dict={self.approximate_y: location, self.direction: direction})
+        result = self.sess.run(self.gradients, feed_dict={self.approximate_y: location, self.direction: direction})[...,0]
         if change:
             result = result[0,...]
         return result
