@@ -31,6 +31,72 @@ class np_operator(object):
     def differentiate(self, point, direction):
         pass
 
+# methode to compose two numpy operators. Returns operator2 \circ operator1
+class concat(np_operator):
+    def __init__(self, operator2, operator1):
+        self.O1 = operator1
+        self.O2 = operator2
+        input_dim = operator1.input_dim
+        output_dim = operator2.output_dim
+        super(concat, self).__init__(input_dim, output_dim)
+
+    def evaluate(self, y):
+        return self.O2.evaluate(self.O1.evaluate(y))
+
+    def differentiate(self, point, direction):
+        new_point = self.O1.evaluate(point)
+        new_direction = self.O2.differentiate(point=new_point, direction=direction)
+        return self.O1.differentiate(point=point, direction=new_direction)
+
+### methods to turn numpy operator into corresponding odl operator
+class deriv_op_adj(odl.Operator):
+    def __init__(self, inp_sp, out_sp, np_model, point):
+        self.model = np_model
+        self.point = point
+        self.out_sp = out_sp
+        super(deriv_op_adj, self).__init__(inp_sp, out_sp, linear=True)
+
+    def _call(self, x):
+        der = self.model.differentiate(self.point, x)
+        return self.out_sp.element(der)
+
+class deriv_op(odl.Operator):
+    def __init__(self, inp_sp, out_sp, np_model, point):
+        self.model = np_model
+        self.point = point
+        self.inp_sp = inp_sp
+        self.out_sp = out_sp
+        super(deriv_op, self).__init__(inp_sp, out_sp, linear=True)
+
+    def _call(self, x):
+        return self.out_sp.element(self.model.evaluate(x))
+
+    @property
+    def adjoint(self):
+        return deriv_op_adj(inp_sp=self.out_sp, out_sp=self.inp_sp, np_model=self.model, point=self.point)
+
+class as_odl_operator(odl.Operator):
+    def _call(self, x):
+        return self.output_space.element(self.np_model.evaluate(x))
+
+    def derivative(self, point):
+        return deriv_op(inp_sp=self.input_space, out_sp=self.output_space, np_model=self.np_model, point=point)
+
+    def __init__(self, np_model):
+        self.np_model = np_model
+        idim = np_model.input_dim
+        left = int(idim[0] / 2)
+        right = int(idim[1] / 2)
+        self.input_space = odl.uniform_discr([-left, -right], [left, right], [idim[0], idim[1]],
+                                             dtype='float32')
+        odim = np_model.output_dim
+        left = int(odim[0] / 2)
+        right = int(odim[1] / 2)
+        self.output_space = odl.uniform_discr([-left, -right], [left, right], [odim[0], odim[1]],
+                                              dtype='float32')
+        super(as_odl_operator, self).__init__(self.input_space, self.output_space)
+
+# PAT as numpy operator
 class PAT_operator(np_operator):
     def __init__(self, PAT_OP, input_dim, output_dim):
         self.PAT_OP = PAT_OP
@@ -42,7 +108,7 @@ class PAT_operator(np_operator):
     def differentiate(self, point, direction):
         return self.PAT_OP.kspace_backward(direction)
 
-
+# The model correction as numpy operator
 class model_correction(np_operator):
     # makes sure the folders needed for saving the model and logging data are in place
     def generate_folders(self, path):
@@ -173,58 +239,7 @@ class model_correction(np_operator):
         self.writer.add_summary(summary, iteration)
         print('Iteration: {}, L2Loss: {}'.format(iteration, loss))
 
-# set up the odl operator classes we need
-class deriv_op_adj(odl.Operator):
-    def __init__(self, inp_sp, out_sp, np_model, point):
-        self.model = np_model
-        self.point = point
-        self.out_sp = out_sp
-        super(deriv_op_adj, self).__init__(inp_sp, out_sp, linear=True)
-
-    def _call(self, x):
-        der = self.model.differentiate(self.point, x)
-        return self.out_sp.element(der)
-
-class deriv_op(odl.Operator):
-    def __init__(self, inp_sp, out_sp, np_model, point):
-        self.model = np_model
-        self.point = point
-        self.inp_sp = inp_sp
-        self.out_sp = out_sp
-        super(deriv_op, self).__init__(inp_sp, out_sp, linear=True)
-
-    def _call(self, x):
-        return self.out_sp.element(self.model.evaluate(x))
-
-    @property
-    def adjoint(self):
-        return deriv_op_adj(inp_sp=self.out_sp, out_sp=self.inp_sp, np_model=self.model, point=self.point)
-
-
-# get the learned model correction as odl operator
-class as_odl_operator(odl.Operator):
-    def _call(self, x):
-        return self.output_space.element(self.np_model.evaluate(x))
-
-    def derivative(self, point):
-        return deriv_op(inp_sp=self.input_space, out_sp=self.output_space, np_model=self.np_model, point=point)
-
-    def __init__(self, np_model):
-        self.np_model = np_model
-        idim = np_model.input_dim
-        left = int(idim[0]/2)
-        right = int(idim[1]/2)
-        self.input_space = odl.uniform_discr([-left, -right], [left, right], [idim[0], idim[1]],
-                                  dtype='float32')
-        odim = np_model.output_dim
-        left = int(odim[0]/2)
-        right = int(odim[1]/2)
-        self.output_space = odl.uniform_discr([-left, -right], [left, right], [odim[0], odim[1]],
-                                  dtype='float32')
-        super(as_odl_operator, self).__init__(self.input_space, self.output_space)
-
-
-# This class handling the model approximation and training it
+# Class that handels the datasets and training
 class framework(object):
     # the data set name determines the saving folder and where to look for training data
     data_set_name = 'balls64'
@@ -261,12 +276,9 @@ class framework(object):
         kgridForw = fpat.kgrid(data_path + 'kgrid_smallForw.mat')
         operator = fpat.fastPAT(kgridBack, kgridForw, self.angle)
         self.pat_operator = PAT_operator(operator, self.image_size, self.measurement_size)
-        self.pat_odl = as_odl_operator(self.pat_operator)
-
 
         # initialize the correction operator
         self.cor_operator = model_correction(self.path, self.measurement_size)
-        self.cor_odl = as_odl_operator(self.cor_operator)
 
     def train_correction(self, steps, batch_size, learning_rate):
         for k in range(steps):
