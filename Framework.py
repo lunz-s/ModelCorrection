@@ -179,7 +179,7 @@ class deriv_op_adj(odl.Operator):
         self.model = np_model
         self.point = point
         self.out_sp = out_sp
-        super(deriv_op_adj, self).__init__(inp_sp, out_sp)
+        super(deriv_op_adj, self).__init__(inp_sp, out_sp, linear=True)
 
     def _call(self, x):
         der = self.model.differentiate(self.point, x)
@@ -191,7 +191,7 @@ class deriv_op(odl.Operator):
         self.point = point
         self.inp_sp = inp_sp
         self.out_sp = out_sp
-        super(deriv_op, self).__init__(inp_sp, out_sp)
+        super(deriv_op, self).__init__(inp_sp, out_sp, linear=True)
 
     def _call(self, x):
         return self.out_sp.element(self.model.evaluate(x))
