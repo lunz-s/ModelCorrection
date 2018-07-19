@@ -224,7 +224,7 @@ class model_correction(np_operator):
     def differentiate(self, point, direction):
         location, change = self.feedable_format(point)
         direction, _  =self.feedable_format(direction)
-        result = self.sess.run(self.gradients, feed_dict={self.approximate_y: location, self.direction: direction})[...,0]
+        result = self.sess.run(self.gradients, feed_dict={self.approximate_y: location, self.direction: direction})[0]
         if change:
             result = result[0,...]
         return result
