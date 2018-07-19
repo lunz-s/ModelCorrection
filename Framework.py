@@ -136,12 +136,32 @@ class model_correction(np_operator):
         # load in existing model
         self.load()
 
+    @staticmethod
+    # puts numpy array in form that can be fed into the graph
+    def feedable_format(array):
+        dim = len(array.shape)
+        changed = False
+        if dim == 2:
+            array  = np.expand_dims(array, axis=0)
+            changed = True
+        elif not dim == 3:
+            raise ValueError
+        return array, changed
 
     def evaluate(self, y):
-        return self.sess.run(self.output, feed_dict={self.approximate_y: y})
+        y, change = self.feedable_format(y)
+        result = self.sess.run(self.output, feed_dict={self.approximate_y: y})
+        if change:
+            result = result[0,...]
+        return result
 
     def differentiate(self, location, direction):
-        return self.sess.run(self.gradients, feed_dict={self.approximate_y: location, self.direction: direction})
+        location, change = self.feedable_format(location)
+        direction, _  =self.feedable_format(direction)
+        result = self.sess.run(self.gradients, feed_dict={self.approximate_y: location, self.direction: direction})
+        if change:
+            result = result[0,...]
+        return result
 
     def train(self, true_data, apr_data, learning_rate):
         self.sess.run(self.optimizer, feed_dict={self.approximate_y: apr_data, self.true_y: true_data,
@@ -241,10 +261,12 @@ class framework(object):
         kgridForw = fpat.kgrid(data_path + 'kgrid_smallForw.mat')
         operator = fpat.fastPAT(kgridBack, kgridForw, self.angle)
         self.pat_operator = PAT_operator(operator, self.image_size, self.measurement_size)
+        self.pat_odl = as_odl_operator(self.pat_operator)
 
 
         # initialize the correction operator
         self.cor_operator = model_correction(self.path, self.measurement_size)
+        self.cor_odl = as_odl_operator(self.cor_operator)
 
     def train_correction(self, steps, batch_size, learning_rate):
         for k in range(steps):
@@ -254,3 +276,35 @@ class framework(object):
                 appr, true, image = self.data_sets.test.next_batch(batch_size)
                 self.cor_operator.log(true_data=true, apr_data=appr)
         self.cor_operator.save()
+
+    @staticmethod
+    def tv_reconstruction(y, start_point, operator, param=0.0001, steps=200):
+        space = operator.domain
+        ran = operator.range
+        # the operators
+        gradients = odl.Gradient(space, method='forward')
+        broad_op = odl.BroadcastOperator(operator, gradients)
+        # define empty functional to fit the chambolle_pock framework
+        g = odl.solvers.ZeroFunctional(broad_op.domain)
+
+        # the norms
+        l1_norm = param * odl.solvers.L1Norm(gradients.range)
+        l2_norm_squared = odl.solvers.L2NormSquared(ran).translated(y)
+        functional = odl.solvers.SeparableSum(l2_norm_squared, l1_norm)
+
+        # hard code operator norm in, assuming the operator is roughy unitary
+        op_norm = 1
+
+        tau = 10.0 / op_norm
+        sigma = 0.1 / op_norm
+        niter = steps
+
+        # find starting point
+        x = space.element(start_point)
+
+        # Run the optimization algoritm
+        # odl.solvers.chambolle_pock_solver(x, functional, g, broad_op, tau = tau, sigma = sigma, niter=niter)
+        odl.solvers.pdhg(x, functional, g, broad_op, tau=tau, sigma=sigma, niter=niter)
+        return x
+
+    def
