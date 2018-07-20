@@ -266,7 +266,7 @@ class framework(object):
         name = platform.node()
         path_prefix = ''
         if name == 'motel':
-            path_prefix =  '/local/scratch/public/sl767/ModelCorrection/'
+            path_prefix = '/local/scratch/public/sl767/ModelCorrection/'
         else:
             path_prefix = ''
 
@@ -320,11 +320,8 @@ class framework(object):
         l2_norm_squared = odl.solvers.L2NormSquared(ran).translated(y)
         functional = odl.solvers.SeparableSum(l2_norm_squared, l1_norm)
 
-        # hard code operator norm in, assuming the operator is roughly unitary
-        op_norm = 1
-
-        tau = 10.0 / op_norm
-        sigma = 0.1 / op_norm
+        tau = 10.0
+        sigma = 0.1
         niter = steps
 
         # find starting point
