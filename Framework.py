@@ -320,7 +320,7 @@ class framework(object):
         l2_norm_squared = odl.solvers.L2NormSquared(ran).translated(y)
         functional = odl.solvers.SeparableSum(l2_norm_squared, l1_norm)
 
-        # hard code operator norm in, assuming the operator is roughy unitary
+        # hard code operator norm in, assuming the operator is roughly unitary
         op_norm = 1
 
         tau = 10.0 / op_norm
@@ -335,7 +335,7 @@ class framework(object):
         odl.solvers.pdhg(x, functional, g, broad_op, tau=tau, sigma=sigma, niter=niter)
         return x
 
-    def tv_generic(self, data, corrected=True, param= tv_param):
+    def tv_generic(self, data, corrected=True, param=tv_param):
         if corrected:
             operator=self.odl_cor*self.odl_pat
         else:
@@ -360,7 +360,7 @@ class framework(object):
         # compute L2 error
         l2 = np.average(np.sqrt(np.sum(np.square(recon-image), axis=(1,2))))
         # comput L2 error with naive methode for comparison
-        pseude_inverse = self.pat_operator.input_dim(true)
+        pseude_inverse = self.pat_operator.inverse(true)
         l2_pi = np.average(np.sqrt(np.sum(np.square(pseude_inverse-image), axis=(1,2))))
         print('Parameter: {}, L2 PseudoInv: {}, L2 Variational: {}'.format(param, l2_pi, l2))
         return l2
