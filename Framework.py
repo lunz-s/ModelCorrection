@@ -287,8 +287,8 @@ class framework(object):
         # initializing the PAT transform
         kgridBack = fpat.kgrid(data_path + 'kgrid_small.mat')
         kgridForw = fpat.kgrid(data_path + 'kgrid_smallForw.mat')
-        operator = fpat.fastPAT(kgridBack, kgridForw, self.angle)
-        self.pat_operator = PAT_operator(operator, self.image_size, self.measurement_size)
+        self.plain_pat_operator = fpat.fastPAT(kgridBack, kgridForw, self.angle)
+        self.pat_operator = PAT_operator(self.plain_pat_operator, self.image_size, self.measurement_size)
         self.odl_pat = as_odl_operator(self.pat_operator)
 
         # initialize the correction operator

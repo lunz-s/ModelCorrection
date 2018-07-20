@@ -212,8 +212,8 @@ class fastPAT(object):
 #        p = interp2(kgrid.ky, w, p, kgrid.ky, w_new, interp_method);        
 #        p(isnan(p)) = 0;
 
-        p0   = griddata(ptsEval,np.reshape(pT,[127*64,1]),ptsInterp,method='linear') #To be consistent with above
-        idx  = np.where(np.isnan(p0))
+        p0 = griddata(ptsEval,np.reshape(pT,[127*64,1]),ptsInterp,method='linear') #To be consistent with above
+        idx = np.where(np.isnan(p0))
         p0[idx]=0
         
         p0=np.reshape(p0,[127,64])
