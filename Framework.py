@@ -108,6 +108,17 @@ class PAT_operator(np_operator):
     def differentiate(self, point, direction):
         return self.PAT_OP.kspace_backward(direction)
 
+    def inverse(self, y):
+        if len(y.shape) == 3:
+            res = np.zeros(shape=(y.shape[0], self.input_dim[0], self.input_dim[1]))
+            for k in range(y.shape[0]):
+                res[k,...] = self.PAT_OP.kspace_backward(y[k,...])
+        elif len(y.shape) == 2:
+            res = self.PAT_OP.kspace_backward(y)
+        else:
+            raise ValueError
+        return res
+
 # The model correction as numpy operator
 class model_correction(np_operator):
     # makes sure the folders needed for saving the model and logging data are in place
@@ -223,7 +234,7 @@ class model_correction(np_operator):
 
     def differentiate(self, point, direction):
         location, change = self.feedable_format(point)
-        direction, _  =self.feedable_format(direction)
+        direction, _ = self.feedable_format(direction)
         result = self.sess.run(self.gradients, feed_dict={self.approximate_y: location, self.direction: direction})[0]
         if change:
             result = result[0,...]
@@ -247,6 +258,8 @@ class framework(object):
     experiment_name = 'default_experiment'
     # angular cut off
     angle = 60
+    # tv parameter
+    tv_param = 0.001
 
     def __init__(self):
         # finding the correct path extensions for saving models
@@ -276,9 +289,11 @@ class framework(object):
         kgridForw = fpat.kgrid(data_path + 'kgrid_smallForw.mat')
         operator = fpat.fastPAT(kgridBack, kgridForw, self.angle)
         self.pat_operator = PAT_operator(operator, self.image_size, self.measurement_size)
+        self.odl_pat = as_odl_operator(self.pat_operator)
 
         # initialize the correction operator
         self.cor_operator = model_correction(self.path, self.measurement_size)
+        self.odl_cor = as_odl_operator(self.cor_operator)
 
     def train_correction(self, steps, batch_size, learning_rate):
         for k in range(steps):
@@ -289,8 +304,9 @@ class framework(object):
                 self.cor_operator.log(true_data=true, apr_data=appr)
         self.cor_operator.save()
 
+    ### methods to run the pdhg algorithm
     @staticmethod
-    def tv_reconstruction(y, start_point, operator, param=0.0001, steps=200):
+    def _tv_reconstruction(y, start_point, operator, param=0.0001, steps=50):
         space = operator.domain
         ran = operator.range
         # the operators
@@ -318,3 +334,40 @@ class framework(object):
         # odl.solvers.chambolle_pock_solver(x, functional, g, broad_op, tau = tau, sigma = sigma, niter=niter)
         odl.solvers.pdhg(x, functional, g, broad_op, tau=tau, sigma=sigma, niter=niter)
         return x
+
+    def tv_generic(self, data, corrected=True, param= tv_param):
+        if corrected:
+            operator=self.odl_cor*self.odl_pat
+        else:
+            operator=self.odl_pat
+        if len(data.shape) == 3:
+            result = np.zeros(shape=(data.shape[0], self.image_size[0], self.image_size[1]))
+            for k in range(data.shape[0]):
+                starting_point = self.pat_operator.inverse(data[k,...])
+                result[k,...] = self._tv_reconstruction(y=data[k,...], start_point=starting_point,
+                                                       operator=operator, param=param)
+        else:
+            starting_point = self.pat_operator.inverse(data)
+            result = self._tv_reconstruction(y=data, start_point=starting_point, operator=operator, param=param)
+        return result
+
+    def evaluate_tv(self, param=tv_param, batch_size=10, corrected=True, data=None):
+        if data is None:
+            appr, true, image = self.data_sets.train.next_batch(batch_size)
+        else:
+            appr, true, image = data[0], data[1], data[2]
+        recon = self.tv_generic(data=true, corrected=corrected, param=param)
+        # compute L2 error
+        l2 = np.average(np.sqrt(np.sum(np.square(recon-image), axis=(1,2))))
+        # comput L2 error with naive methode for comparison
+        pseude_inverse = self.pat_operator.input_dim(true)
+        l2_pi = np.average(np.sqrt(np.sum(np.square(pseude_inverse-image), axis=(1,2))))
+        print('Parameter: {}, L2 PseudoInv: {}, L2 Variational: {}'.format(param, l2_pi, l2))
+        return l2
+
+    def find_tv_param(self, param_list, corrected=False):
+        appr, true, image = self.data_sets.train.next_batch(1)
+        for param in param_list:
+           self.evaluate_tv(param=param, corrected=corrected, data=[appr, true, image])
+
+
