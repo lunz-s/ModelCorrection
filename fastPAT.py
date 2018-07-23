@@ -34,7 +34,7 @@ class kgrid(object):
         self.dx = 0.1e-3
         self.dy = 0.1e-3
         self.c  = 1500.0
-        self.dt = (2/3)*1e-7
+        self.dt = (2.0/3.0)*1e-7
         self.geometry_scaling=1.0 #Not needed for now
         self.time_scaling=1.0  #Not needed for now
         
