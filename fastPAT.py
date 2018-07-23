@@ -33,10 +33,10 @@ class kgrid(object):
         #Hard code some dimensions, for now
         self.dx = 0.1e-3
         self.dy = 0.1e-3
-        self.c  = 1500
+        self.c  = 1500.0
         self.dt = (2/3)*1e-7
-        self.geometry_scaling=1 #Not needed for now
-        self.time_scaling=1  #Not needed for now
+        self.geometry_scaling=1.0 #Not needed for now
+        self.time_scaling=1.0  #Not needed for now
         
         
         self._kx=kx
@@ -192,7 +192,7 @@ class fastPAT(object):
         
         #      sf(w == 0 & kgrid.ky == 0) = c ./ 2;
         idx=np.where((np.abs(w)+np.abs(self.kgridBack.ky)) == 0)
-        sf[idx]=c/2
+        sf[idx]=c/2.0
 
         #        p = sf .* fftshift(fftn(ifftshift(p)));
         pT=np.fft.fftshift(np.fft.fftn(np.fft.fftshift(pT)))
@@ -200,7 +200,7 @@ class fastPAT(object):
         
         #       p(abs(w) < abs(c * kgrid.ky)) = 0;
         idx=np.where(np.abs(w) <  (c*self.kgridBack.ky) )
-        pT[idx]=0
+        pT[idx]=0.0
 
         
         wDim=np.reshape(w,[127*64,1])
@@ -212,9 +212,9 @@ class fastPAT(object):
 #        p = interp2(kgrid.ky, w, p, kgrid.ky, w_new, interp_method);        
 #        p(isnan(p)) = 0;
 
-        p0 = griddata(ptsEval,np.reshape(pT,[127*64,1]),ptsInterp,method='linear') #To be consistent with above
-        idx = np.where(np.isnan(p0))
-        p0[idx]=0
+        p0   = griddata(ptsEval,np.reshape(pT,[127*64,1]),ptsInterp,method='linear') #To be consistent with above
+        idx  = np.where(np.isnan(p0))
+        p0[idx]=0.0
         
         p0=np.reshape(p0,[127,64])
         

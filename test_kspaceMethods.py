@@ -21,14 +21,13 @@ import fastPAT
 #dataPAT = loadPAT.read_data_sets(dataSetTest)
 
 
-MEASDATA   = '../data/testDataSet.mat'
-measData=loadData.read_data_sets(MEASDATA)
+MEASDATA   = 'data/testDataSet.mat'
+measData=loadData.read_data_sets(MEASDATA, MEASDATA)
 
-
-KGRID_BACK  = '../data/kgrid_small.mat'
+KGRID_BACK  = 'data/kgrid_small.mat'
 kgridBack=fastPAT.kgrid(KGRID_BACK)
 
-KGRID_FORW  = '../data/kgrid_smallForw.mat'
+KGRID_FORW  = 'data/kgrid_smallForw.mat'
 kgridForw=fastPAT.kgrid(KGRID_FORW)
 
 
