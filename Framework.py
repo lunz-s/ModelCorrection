@@ -307,7 +307,7 @@ class framework(object):
         for k in range(steps):
             appr, true, image = self.data_sets.train.next_batch(batch_size)
             new_appr = self.pat_operator.evaluate(image)
-            assert new_appr == appr
+            assert not np.any(new_appr - appr)
             self.cor_operator.train(true_data=true, apr_data=appr, learning_rate=learning_rate)
             if k%20 == 0:
                 appr, true, image = self.data_sets.test.next_batch(batch_size)
