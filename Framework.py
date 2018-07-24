@@ -103,7 +103,15 @@ class PAT_operator(np_operator):
         super(PAT_operator, self).__init__(input_dim, output_dim)
 
     def evaluate(self, y):
-        return self.PAT_OP.kspace_forward(y)
+        if len(y.shape) == 3:
+            res = np.zeros(shape=(y.shape[0], self.output_dim[0], self.output_dim[1]))
+            for k in range(y.shape[0]):
+                res[k,...] = self.PAT_OP.kspace_forward(y[k,...])
+        elif len(y.shape) == 2:
+            res = self.PAT_OP.kspace_forward(y)
+        else:
+            raise ValueError
+        return res
 
     def differentiate(self, point, direction):
         return self.PAT_OP.kspace_backward(direction)
