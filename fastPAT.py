@@ -167,7 +167,7 @@ class fastPAT(object):
         pT=pT[:,64:128]
         pT=np.transpose(pT[:,:],(1,0))
  
-        return (pT)
+        return (pT)/2.0
 
     def kspace_backward(self,pT):
         
