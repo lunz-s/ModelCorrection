@@ -145,7 +145,7 @@ class PAT_operator(np_operator):
         return res
 
     def differentiate(self, point, direction):
-        return self.PAT_OP.kspace_adj(direction)
+        return self.PAT_OP.kspace_adjoint(direction)
 
     def inverse(self, y):
         if len(y.shape) == 3:
