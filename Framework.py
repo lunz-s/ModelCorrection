@@ -97,6 +97,37 @@ class as_odl_operator(odl.Operator):
         super(as_odl_operator, self).__init__(self.input_space, self.output_space)
 
 # PAT as numpy operator
+class PAT_operator_appr_adj(np_operator):
+    def __init__(self, PAT_OP, input_dim, output_dim):
+        self.PAT_OP = PAT_OP
+        super(PAT_operator_appr_adj, self).__init__(input_dim, output_dim)
+
+    def evaluate(self, y):
+        if len(y.shape) == 3:
+            res = np.zeros(shape=(y.shape[0], self.output_dim[0], self.output_dim[1]))
+            for k in range(y.shape[0]):
+                res[k,...] = self.PAT_OP.kspace_forward(y[k,...])
+        elif len(y.shape) == 2:
+            res = self.PAT_OP.kspace_forward(y)
+        else:
+            raise ValueError
+        return res
+
+    def differentiate(self, point, direction):
+        return self.PAT_OP.kspace_backward(direction)
+
+    def inverse(self, y):
+        if len(y.shape) == 3:
+            res = np.zeros(shape=(y.shape[0], self.input_dim[0], self.input_dim[1]))
+            for k in range(y.shape[0]):
+                res[k,...] = self.PAT_OP.kspace_backward(y[k,...])
+        elif len(y.shape) == 2:
+            res = self.PAT_OP.kspace_backward(y)
+        else:
+            raise ValueError
+        return res
+
+# PAT as numpy operator
 class PAT_operator(np_operator):
     def __init__(self, PAT_OP, input_dim, output_dim):
         self.PAT_OP = PAT_OP
@@ -114,7 +145,7 @@ class PAT_operator(np_operator):
         return res
 
     def differentiate(self, point, direction):
-        return self.PAT_OP.kspace_backward(direction)
+        return self.PAT_OP.kspace_adj(direction)
 
     def inverse(self, y):
         if len(y.shape) == 3:

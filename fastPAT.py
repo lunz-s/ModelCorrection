@@ -229,6 +229,67 @@ class fastPAT(object):
         
         
         return (p0)
+
+    def kspace_adjoint(self, pT):
+        c = self.kgridBack.c
+
+        #   p = [flipdim(p, 1); p(2:end, :)];
+        # Transpose frm Python dimensions, maybe not needed later
+
+        # Might be needed again, currently using k_wave output
+        #        pT=np.transpose(pT,(1,0))
+        pT = np.concatenate((pT[::-1, :], pT[1::, :]), 0)
+
+        #        w = c .* kgrid.kx;
+        #        w_new = c .* kgrid.k;
+        w = c * self.kgridBack.kx
+        w_new = c * self.kgridBack.k
+
+        # Replace here with thresholded wave numbers from forward
+        ky_new = np.real(np.sign(w_new) * np.sqrt(np.square(w_new / c) - np.square(self.kgridBack.kx)))
+
+        max_angle = self.angThresh
+        min_ky = np.abs((w_new / c) * np.cos(np.deg2rad(max_angle)))
+        wf = w_new / (c * ky_new)
+        idx = np.where(np.isnan(wf))
+        wf[idx] = 0
+        idx = np.where(np.abs(ky_new) < min_ky)
+        wf[idx] = 0
+        idx = np.where(np.abs(w_new) + np.abs(self.kgridBack.kx) == 0)
+        wf[idx] = 1
+
+        #        p = sf .* fftshift(fftn(ifftshift(p)));
+        pT = np.fft.fftshift(np.fft.fftn(np.fft.fftshift(pT)))
+        pT = np.multiply(wf, pT)
+
+        #       p(abs(w) < abs(c * kgrid.ky)) = 0;
+        idx = np.where(np.abs(w) < (c * self.kgridBack.ky))
+        pT[idx] = 0
+
+        wDim = np.reshape(w, [127 * 64, 1])
+        kyDim = np.reshape(self.kgridBack.ky, [127 * 64, 1])
+        wNewDim = np.reshape(w_new, [127 * 64, 1])
+
+        ptsEval = np.concatenate((kyDim, wDim), 1)
+        ptsInterp = np.concatenate((kyDim, wNewDim), 1)
+        #        p = interp2(kgrid.ky, w, p, kgrid.ky, w_new, interp_method);
+        #        p(isnan(p)) = 0;
+
+        p0 = griddata(ptsEval, np.reshape(pT, [127 * 64, 1]), ptsInterp, method='linear')  # To be consistent with above
+        idx = np.where(np.isnan(p0))
+        p0[idx] = 0
+
+        p0 = np.reshape(p0, [127, 64])
+
+        #        p = real(fftshift(ifftn(ifftshift(p))));
+        p0 = np.real(np.fft.ifftshift(np.fft.ifftn(np.fft.ifftshift(p0))))
+
+        #        p = 2 * 2 * p ./ c;
+        p0 = (2 * 2 / c) * p0
+
+        p0 = p0[64 - 1:128, :];
+
+        return (p0)
     
     def subSample(self):
         return(self.p0)
