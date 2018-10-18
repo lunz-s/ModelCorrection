@@ -355,7 +355,7 @@ class framework(object):
         kgridForw = fpat.kgrid(data_path + 'kgrid_smallForw.mat')
         plain_pat_operator = fpat.fastPAT(kgridBack, kgridForw, self.angle)
         self.appr_operator = approx_PAT_operator(plain_pat_operator, self.image_size, self.measurement_size)
-        self.appr_odl = as_odl_operator(self.appr_pat_operator)
+        self.appr_odl = as_odl_operator(self.appr_operator)
 
         # initialize the correct PAT transform
         matrix_path = path_prefix+'Data/Matrices/' + self.matrix
@@ -375,7 +375,7 @@ class framework(object):
                 self.cor_operator.log(true_data=true, apr_data=appr)
         self.cor_operator.save()
 
-    ### methods to run the pdhg algorithm
+    ####### TV reconstruction methods --- outdated!!!
     @staticmethod
     def _tv_reconstruction(y, start_point, operator, param=0.0001, steps=50):
         space = operator.domain
