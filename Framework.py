@@ -147,9 +147,9 @@ class approx_PAT_operator(np_operator):
         if len(y.shape) == 3:
             res = np.zeros(shape=(y.shape[0], self.input_dim[0], self.input_dim[1]))
             for k in range(y.shape[0]):
-                res[k,...] = self.PAT_OP.kspace_backward(y[k,...])
+                res[k,...] = self.PAT_OP.kspace_inverse(y[k,...])
         elif len(y.shape) == 2:
-            res = self.PAT_OP.kspace_backward(y)
+            res = self.PAT_OP.kspace_inverse(y)
         else:
             raise ValueError
         return res
