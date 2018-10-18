@@ -1,22 +1,15 @@
-import random
 import numpy as np
-import scipy.ndimage
 import os
-import matplotlib
-
-matplotlib.use('agg')
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
 import platform
+import h5py
+
 import odl
 import odl.contrib.tensorflow
-from skimage.measure import compare_ssim as ssim
 
-from scipy.misc import imresize
 import tensorflow as tf
 
 import Load_PAT2D_data as PATdata
-import fastPAT as fpat
+import fastPAT_withAdjoint as fpat
 from networks import UNet as UNet_class
 
 # abstract class to wrap up the occuring operators in numpy. Can be turned into odl operator using as_odl_operator
@@ -48,7 +41,7 @@ class concat(np_operator):
         new_direction = self.O2.differentiate(point=new_point, direction=direction)
         return self.O1.differentiate(point=point, direction=new_direction)
 
-### methods to turn numpy operator into corresponding odl operator
+####### methods to turn numpy operator into corresponding odl operator
 class deriv_op_adj(odl.Operator):
     def __init__(self, inp_sp, out_sp, np_model, point):
         self.model = np_model
@@ -96,42 +89,45 @@ class as_odl_operator(odl.Operator):
                                               dtype='float32')
         super(as_odl_operator, self).__init__(self.input_space, self.output_space)
 
-# PAT as numpy operator
-class PAT_operator_appr_adj(np_operator):
+###### end of odl opertor transorfmation code
+# approximate PAT operator with inverse as adjoint
+# class PAT_operator_appr_adj(np_operator):
+#     def __init__(self, PAT_OP, input_dim, output_dim):
+#         self.PAT_OP = PAT_OP
+#         super(PAT_operator_appr_adj, self).__init__(input_dim, output_dim)
+#
+#     def evaluate(self, y):
+#         if len(y.shape) == 3:
+#             res = np.zeros(shape=(y.shape[0], self.output_dim[0], self.output_dim[1]))
+#             for k in range(y.shape[0]):
+#                 res[k,...] = self.PAT_OP.kspace_forward(y[k,...])
+#         elif len(y.shape) == 2:
+#             res = self.PAT_OP.kspace_forward(y)
+#         else:
+#             raise ValueError
+#         return res
+#
+#     def differentiate(self, point, direction):
+#         return self.PAT_OP.kspace_backward(direction)
+#
+#     def inverse(self, y):
+#         if len(y.shape) == 3:
+#             res = np.zeros(shape=(y.shape[0], self.input_dim[0], self.input_dim[1]))
+#             for k in range(y.shape[0]):
+#                 res[k,...] = self.PAT_OP.kspace_backward(y[k,...])
+#         elif len(y.shape) == 2:
+#             res = self.PAT_OP.kspace_backward(y)
+#         else:
+#             raise ValueError
+#         return res
+
+# approximate PAT as numpy operator
+
+# the approximated PAT operator as np_operator
+class approx_PAT_operator(np_operator):
     def __init__(self, PAT_OP, input_dim, output_dim):
         self.PAT_OP = PAT_OP
-        super(PAT_operator_appr_adj, self).__init__(input_dim, output_dim)
-
-    def evaluate(self, y):
-        if len(y.shape) == 3:
-            res = np.zeros(shape=(y.shape[0], self.output_dim[0], self.output_dim[1]))
-            for k in range(y.shape[0]):
-                res[k,...] = self.PAT_OP.kspace_forward(y[k,...])
-        elif len(y.shape) == 2:
-            res = self.PAT_OP.kspace_forward(y)
-        else:
-            raise ValueError
-        return res
-
-    def differentiate(self, point, direction):
-        return self.PAT_OP.kspace_backward(direction)
-
-    def inverse(self, y):
-        if len(y.shape) == 3:
-            res = np.zeros(shape=(y.shape[0], self.input_dim[0], self.input_dim[1]))
-            for k in range(y.shape[0]):
-                res[k,...] = self.PAT_OP.kspace_backward(y[k,...])
-        elif len(y.shape) == 2:
-            res = self.PAT_OP.kspace_backward(y)
-        else:
-            raise ValueError
-        return res
-
-# PAT as numpy operator
-class PAT_operator(np_operator):
-    def __init__(self, PAT_OP, input_dim, output_dim):
-        self.PAT_OP = PAT_OP
-        super(PAT_operator, self).__init__(input_dim, output_dim)
+        super(approx_PAT_operator, self).__init__(input_dim, output_dim)
 
     def evaluate(self, y):
         if len(y.shape) == 3:
@@ -158,7 +154,34 @@ class PAT_operator(np_operator):
             raise ValueError
         return res
 
-# The model correction as numpy operator
+# the exact PAT as numpy operator
+class exact_PAT_operator(np_operator):
+    def __init__(self, matrix_path, input_dim, output_dim):
+        fData = h5py.File(matrix_path, 'r')
+        inData = fData.get('A')
+        rows = inData.shape[0]
+        cols = inData.shape[1]
+        print(rows, cols)
+        self.m = np.matrix(inData)
+        super(exact_PAT_operator, self).__init__(input_dim, output_dim)
+
+    # computes the matrix multiplication with matrix
+    def evaluate(self, y):
+        if len(y.shape) == 3:
+            res = np.zeros(shape=(y.shape[0], self.output_dim[0], self.output_dim[1]))
+            for k in range(y.shape[0]):
+                res[k,...] = np.matmul(self.m, y[k,...])
+        elif len(y.shape) == 2:
+            res = np.matmul(self.m,y)
+        else:
+            raise ValueError
+        return res
+
+    # matrix multiplication with the adjoint of the matrix
+    def differentiate(self, point, direction):
+        return np.matmul(np.transpose(self.m), direction)
+
+# The model correction operator as numpy operator
 class model_correction(np_operator):
     # makes sure the folders needed for saving the model and logging data are in place
     def generate_folders(self, path):
@@ -184,6 +207,7 @@ class model_correction(np_operator):
     def load(self):
         saver = tf.train.Saver()
         if os.listdir(self.path+'Data/'):
+            print(self.path)
             saver.restore(self.sess, tf.train.latest_checkpoint(self.path+'Data/'))
             print('Save restored')
         else:
@@ -250,6 +274,7 @@ class model_correction(np_operator):
         tf.global_variables_initializer().run()
 
         # load in existing model
+        print(self.path)
         self.load()
 
     @staticmethod
@@ -295,6 +320,8 @@ class framework(object):
     data_set_name = 'balls64'
     # categorizes experiments
     experiment_name = 'default_experiment'
+    # the name of the matrix file to simulate the true forward operator
+    matrix = 'threshSingleMatrix4Py.mat'
     # angular cut off
     angle = 60
     # tv parameter
@@ -307,7 +334,7 @@ class framework(object):
         if name == 'motel':
             path_prefix = '/local/scratch/public/sl767/ModelCorrection/'
         else:
-            path_prefix = ''
+            path_prefix = '../'
 
         # setting the training data
         data_path = path_prefix + 'Data/{}/'.format(self.data_set_name)
@@ -323,16 +350,21 @@ class framework(object):
         self.image_size = self.data_sets.train.get_image_resolution()
         self.measurement_size = self.data_sets.train.get_y_resolution()
 
-        # initializing the PAT transform
+        # initializing the approximate PAT transform
         kgridBack = fpat.kgrid(data_path + 'kgrid_small.mat')
         kgridForw = fpat.kgrid(data_path + 'kgrid_smallForw.mat')
-        self.plain_pat_operator = fpat.fastPAT(kgridBack, kgridForw, self.angle)
-        self.pat_operator = PAT_operator(self.plain_pat_operator, self.image_size, self.measurement_size)
-        self.odl_pat = as_odl_operator(self.pat_operator)
+        plain_pat_operator = fpat.fastPAT(kgridBack, kgridForw, self.angle)
+        self.appr_operator = approx_PAT_operator(plain_pat_operator, self.image_size, self.measurement_size)
+        self.appr_odl = as_odl_operator(self.appr_pat_operator)
+
+        # initialize the correct PAT transform
+        matrix_path = path_prefix+'Data/Matrices/' + self.matrix
+        self.exact_operator = exact_PAT_operator(matrix_path, self.image_size, self.measurement_size)
+        self.exact_odl = as_odl_operator(self.exact_operator)
 
         # initialize the correction operator
         self.cor_operator = model_correction(self.path, self.measurement_size)
-        self.odl_cor = as_odl_operator(self.cor_operator)
+        self.cor_odl = as_odl_operator(self.cor_operator)
 
     def train_correction(self, steps, batch_size, learning_rate):
         for k in range(steps):
