@@ -209,7 +209,7 @@ class model_correction(np_operator):
         self.approximate_y = tf.placeholder(shape=[None, measurement_size[0], measurement_size[1]],
                                             dtype=tf.float32)
         self.true_y = tf.placeholder(shape=[None, measurement_size[0], measurement_size[1]], dtype=tf.float32)
-        self.true_adjoint = tf.placeholder(shape=[None, image_size[0], image_size[1]])
+        self.true_adjoint = tf.placeholder(shape=[None, image_size[0], image_size[1]], dtype=tf.float32)
         self.learning_rate = tf.placeholder(dtype=tf.float32)
 
         # add a channel dimension
