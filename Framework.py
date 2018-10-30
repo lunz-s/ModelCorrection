@@ -82,40 +82,6 @@ class as_odl_operator(odl.Operator):
         else:
             return deriv_op_adj(inp_sp=self.input_space, out_sp=self.output_space, np_model=self.np_model, point=0)
 
-###### end of odl opertor transorfmation code
-# approximate PAT operator with inverse as adjoint
-# class PAT_operator_appr_adj(np_operator):
-#     def __init__(self, PAT_OP, input_dim, output_dim):
-#         self.PAT_OP = PAT_OP
-#         super(PAT_operator_appr_adj, self).__init__(input_dim, output_dim)
-#
-#     def evaluate(self, y):
-#         if len(y.shape) == 3:
-#             res = np.zeros(shape=(y.shape[0], self.output_dim[0], self.output_dim[1]))
-#             for k in range(y.shape[0]):
-#                 res[k,...] = self.PAT_OP.kspace_forward(y[k,...])
-#         elif len(y.shape) == 2:
-#             res = self.PAT_OP.kspace_forward(y)
-#         else:
-#             raise ValueError
-#         return res
-#
-#     def differentiate(self, point, direction):
-#         return self.PAT_OP.kspace_backward(direction)
-#
-#     def inverse(self, y):
-#         if len(y.shape) == 3:
-#             res = np.zeros(shape=(y.shape[0], self.input_dim[0], self.input_dim[1]))
-#             for k in range(y.shape[0]):
-#                 res[k,...] = self.PAT_OP.kspace_backward(y[k,...])
-#         elif len(y.shape) == 2:
-#             res = self.PAT_OP.kspace_backward(y)
-#         else:
-#             raise ValueError
-#         return res
-
-# approximate PAT as numpy operator
-
 # the approximated PAT operator as np_operator
 class approx_PAT_operator(np_operator):
     def __init__(self, PAT_OP, input_dim, output_dim):
@@ -400,7 +366,7 @@ class framework(object):
         self.exact_odl = as_odl_operator(self.exact_operator)
 
         # initialize the correction operator
-        self.cor_operator = self.correction_model(self.path, self.image_size, self.measurement_size)
+        self.cor_operator = self.correction_model(self.path, self.image_size, self.measurement_size, self.appr_operator)
         self.cor_odl = as_odl_operator(self.cor_operator)
 
     def train_correction(self, steps, batch_size, learning_rate):
@@ -441,40 +407,6 @@ class framework(object):
         odl.solvers.pdhg(x, functional, g, broad_op, tau=tau, sigma=sigma, niter=niter)
         return x
 
-    def tv_generic(self, data, corrected=True, param=tv_param):
-        if corrected:
-            operator = self.odl_cor * self.odl_pat
-        else:
-            operator = self.odl_pat
-        if len(data.shape) == 3:
-            result = np.zeros(shape=(data.shape[0], self.image_size[0], self.image_size[1]))
-            for k in range(data.shape[0]):
-                starting_point = self.pat_operator.inverse(data[k, ...])
-                result[k, ...] = self._tv_reconstruction(y=data[k, ...], start_point=starting_point,
-                                                         operator=operator, param=param)
-        else:
-            starting_point = self.pat_operator.inverse(data)
-            result = self._tv_reconstruction(y=data, start_point=starting_point, operator=operator, param=param)
-        return result
-
-    def evaluate_tv(self, param=tv_param, batch_size=10, corrected=True, data=None):
-        if data is None:
-            appr, true, image = self.data_sets.train.next_batch(batch_size)
-        else:
-            appr, true, image = data[0], data[1], data[2]
-        recon = self.tv_generic(data=true, corrected=corrected, param=param)
-        # compute L2 error
-        l2 = np.average(np.sqrt(np.sum(np.square(recon - image), axis=(1, 2))))
-        # comput L2 error with naive methode for comparison
-        pseude_inverse = self.pat_operator.inverse(true)
-        l2_pi = np.average(np.sqrt(np.sum(np.square(pseude_inverse - image), axis=(1, 2))))
-        print('Parameter: {}, L2 PseudoInv: {}, L2 Variational: {}'.format(param, l2_pi, l2))
-        return l2
-
-    def find_tv_param(self, param_list, corrected=False):
-        appr, true, image = self.data_sets.train.next_batch(1)
-        for param in param_list:
-            self.evaluate_tv(param=param, corrected=corrected, data=[appr, true, image])
 
 class framework_regularised(framework):
     experiment_name = 'Adjoint_regularization'
