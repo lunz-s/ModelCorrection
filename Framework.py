@@ -290,12 +290,14 @@ class model_correction(np_operator):
 class model_correction_adjoint_regularization(model_correction):
     def __init__(self, path, image_size, measurement_size, approx_op):
         approx_adj = approx_op.adjoint
+        print(approx_adj.domain.shape)
         self.tf_appr_adjoint = as_tensorflow_layer(approx_adj, name='Approximate_Operator')
         super(model_correction_adjoint_regularization, self).__init__(path, image_size, measurement_size, approx_op)
 
     def loss_fct(self, output, true_meas, adjoint):
         l2 = super(model_correction_adjoint_regularization, self).loss_fct(output, true_meas, adjoint)
         ### the adjoint loss functionals ###
+        print(self.gradients.shape)
         apr_x = self.tf_appr_adjoint(self.gradients)
         loss_adj = tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(apr_x - adjoint, axis=(1,2,3)))))
         tf.summary.scalar(loss_adj, 'Loss_Adjoint')
