@@ -366,7 +366,7 @@ class framework(object):
         self.exact_odl = as_odl_operator(self.exact_operator)
 
         # initialize the correction operator
-        self.cor_operator = self.correction_model(self.path, self.image_size, self.measurement_size, self.appr_operator)
+        self.cor_operator = self.correction_model(self.path, self.image_size, self.measurement_size, self.appr_odl)
         self.cor_odl = as_odl_operator(self.cor_operator)
 
     def train_correction(self, steps, batch_size, learning_rate):
