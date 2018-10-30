@@ -224,7 +224,7 @@ class model_correction(np_operator):
                                             dtype=tf.float32)
         di = tf.expand_dims(self.direction, axis=3)
         scalar_prod = tf.reduce_sum(tf.multiply(self.output, di))
-        self.gradients = tf.gradients(scalar_prod, self.approximate_y)
+        self.gradients = tf.gradients(scalar_prod, self.approximate_y)[0]
 
         # loss functional
         self.loss = self.loss_fct(self.output, ty, self.true_adjoint)
@@ -272,7 +272,7 @@ class model_correction(np_operator):
     def differentiate(self, point, direction):
         location, change = self.feedable_format(point)
         direction, _ = self.feedable_format(direction)
-        result = self.sess.run(self.gradients, feed_dict={self.approximate_y: location, self.direction: direction})[0]
+        result = self.sess.run(self.gradients, feed_dict={self.approximate_y: location, self.direction: direction})
         if change:
             result = result[0,...]
         return result
