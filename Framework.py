@@ -29,6 +29,7 @@ class np_operator(object):
 ####### methods to turn numpy operator into corresponding odl operator
 class deriv_op_adj(odl.Operator):
     def __init__(self, inp_sp, out_sp, np_model, point):
+        self.linear=np_model.linear
         self.model = np_model
         self.point = point
         self.out_sp = out_sp
@@ -37,6 +38,13 @@ class deriv_op_adj(odl.Operator):
     def _call(self, x):
         der = self.model.differentiate(self.point, x)
         return self.out_sp.element(der)
+
+    @property
+    def adjoint(self):
+        if not self.linear:
+            raise TypeError('Non linear operators do not admit adjoint')
+        else:
+            return as_odl_operator(self.model)
 
 class deriv_op(odl.Operator):
     def __init__(self, inp_sp, out_sp, np_model, point):
