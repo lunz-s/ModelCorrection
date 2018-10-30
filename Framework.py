@@ -219,6 +219,13 @@ class model_correction(np_operator):
         # the network output
         self.output = self.UNet.net(ay)
 
+        # graph for computing the Hessian of the network in a given direction
+        self.direction = tf.placeholder(shape=[None, measurement_size[0], measurement_size[1]],
+                                            dtype=tf.float32)
+        di = tf.expand_dims(self.direction, axis=3)
+        scalar_prod = tf.reduce_sum(tf.multiply(self.output, di))
+        self.gradients = tf.gradients(scalar_prod, self.approximate_y)
+
         # loss functional
         self.loss = self.loss_fct(self.output, ty, self.true_adjoint)
 
@@ -235,12 +242,6 @@ class model_correction(np_operator):
         self.merged = tf.summary.merge_all()
         self.writer = tf.summary.FileWriter(self.path + 'Logs/', self.sess.graph)
 
-        # graph for computing the Hessian of the network in a given direction
-        self.direction = tf.placeholder(shape=[None, measurement_size[0], measurement_size[1]],
-                                            dtype=tf.float32)
-        di = tf.expand_dims(self.direction, axis=3)
-        scalar_prod = tf.reduce_sum(tf.multiply(self.output, di))
-        self.gradients = tf.gradients(scalar_prod, self.approximate_y)
 
         # initialize variables
         tf.global_variables_initializer().run()
