@@ -48,7 +48,7 @@ testForw=np.reshape(np.matmul(forwMat,imagVec),[64,64])
 
 plt.figure()
 plt.imshow(testForw)
-#
+
 plt.figure()
 plt.imshow(testData)
 

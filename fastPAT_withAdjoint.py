@@ -104,6 +104,7 @@ class fastPAT(object):
 #        p0 = (p0 + fliplr(p0))/2;
         p0=np.transpose(p0[::-1,:],(1,0))
         p0=np.concatenate((p0[:,:],p0[:,::-1]),1)
+        p0 = p0/2.0
 
 #        p_kxky = fftshift(fftn(ifftshift(p0)));
         p_kxky=np.fft.fftshift(np.fft.fftn(np.fft.fftshift(p0)))

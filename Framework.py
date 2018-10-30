@@ -4,7 +4,7 @@ import platform
 import h5py
 
 import odl
-import odl.contrib.tensorflow
+from odl.contrib.tensorflow import as_tensorflow_layer
 
 import tensorflow as tf
 
@@ -14,6 +14,8 @@ from networks import UNet as UNet_class
 
 # abstract class to wrap up the occuring operators in numpy. Can be turned into odl operator using as_odl_operator
 class np_operator(object):
+    linear = True
+
     def __init__(self, input_dim, output_dim):
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -23,23 +25,6 @@ class np_operator(object):
 
     def differentiate(self, point, direction):
         pass
-
-# methode to compose two numpy operators. Returns operator2 \circ operator1
-class concat(np_operator):
-    def __init__(self, operator2, operator1):
-        self.O1 = operator1
-        self.O2 = operator2
-        input_dim = operator1.input_dim
-        output_dim = operator2.output_dim
-        super(concat, self).__init__(input_dim, output_dim)
-
-    def evaluate(self, y):
-        return self.O2.evaluate(self.O1.evaluate(y))
-
-    def differentiate(self, point, direction):
-        new_point = self.O1.evaluate(point)
-        new_direction = self.O2.differentiate(point=new_point, direction=direction)
-        return self.O1.differentiate(point=point, direction=new_direction)
 
 ####### methods to turn numpy operator into corresponding odl operator
 class deriv_op_adj(odl.Operator):
@@ -76,6 +61,7 @@ class as_odl_operator(odl.Operator):
         return deriv_op(inp_sp=self.input_space, out_sp=self.output_space, np_model=self.np_model, point=point)
 
     def __init__(self, np_model):
+        self.linear = np_model.linear
         self.np_model = np_model
         idim = np_model.input_dim
         left = int(idim[0] / 2)
@@ -88,6 +74,13 @@ class as_odl_operator(odl.Operator):
         self.output_space = odl.uniform_discr([-left, -right], [left, right], [odim[0], odim[1]],
                                               dtype='float32')
         super(as_odl_operator, self).__init__(self.input_space, self.output_space)
+
+    @property
+    def adjoint(self):
+        if not self.linear:
+            raise TypeError('Non linear operators do not admit adjoint')
+        else:
+            return deriv_op_adj(inp_sp=self.input_space, out_sp=self.output_space, np_model=self.np_model, point=0)
 
 ###### end of odl opertor transorfmation code
 # approximate PAT operator with inverse as adjoint
@@ -163,26 +156,33 @@ class exact_PAT_operator(np_operator):
         cols = inData.shape[1]
         print(rows, cols)
         self.m = np.matrix(inData)
+        self.input_sq = input_dim[0]*input_dim[1]
+        self.output_sq = output_dim[0]*output_dim[1]
         super(exact_PAT_operator, self).__init__(input_dim, output_dim)
 
     # computes the matrix multiplication with matrix
     def evaluate(self, y):
+        y = np.flipud(np.asarray(y))
         if len(y.shape) == 3:
             res = np.zeros(shape=(y.shape[0], self.output_dim[0], self.output_dim[1]))
             for k in range(y.shape[0]):
-                res[k,...] = np.matmul(self.m, y[k,...])
+                res[k,...] = np.reshape(np.matmul(self.m, np.reshape(y[k,...], self.input_sq)),
+                                        [self.output_dim[0], self.output_dim[1]])
         elif len(y.shape) == 2:
-            res = np.matmul(self.m,y)
+            res = np.reshape(np.matmul(self.m, np.reshape(y, self.input_sq)), [self.output_dim[0], self.output_dim[1]])
         else:
             raise ValueError
         return res
 
     # matrix multiplication with the adjoint of the matrix
     def differentiate(self, point, direction):
-        return np.matmul(np.transpose(self.m), direction)
+        return np.flipud(np.reshape(np.matmul(np.transpose(self.m), np.reshape(np.asarray(direction), self.output_sq)),
+                          [self.input_dim[0], self.input_dim[1]]))
 
 # The model correction operator as numpy operator
 class model_correction(np_operator):
+    linear = False
+
     # makes sure the folders needed for saving the model and logging data are in place
     def generate_folders(self, path):
         paths = {}
@@ -222,8 +222,15 @@ class model_correction(np_operator):
     def get_network(self, channels):
         return UNet_class(channels_out=channels)
 
+    # the loss functionals - can be overwritten in subclasses
+    def loss_fct(self, output, true_meas, adjoint):
+        loss = tf.sqrt(tf.reduce_sum(tf.square(output - true_meas), axis=(1,2,3)))
+        l2 = tf.reduce_mean(loss)
+        tf.summary.scalar('Loss_L2', l2)
+        return l2
 
-    def __init__(self, path, measurement_size):
+
+    def __init__(self, path, image_size, measurement_size, approx_op):
         super(model_correction, self).__init__(measurement_size, measurement_size)
         self.path = path
         self.generate_folders(path)
@@ -236,6 +243,7 @@ class model_correction(np_operator):
         self.approximate_y = tf.placeholder(shape=[None, measurement_size[0], measurement_size[1]],
                                             dtype=tf.float32)
         self.true_y = tf.placeholder(shape=[None, measurement_size[0], measurement_size[1]], dtype=tf.float32)
+        self.true_adjoint = tf.placeholder(shape=[None, image_size[0], image_size[1]])
         self.learning_rate = tf.placeholder(dtype=tf.float32)
 
         # add a channel dimension
@@ -246,16 +254,14 @@ class model_correction(np_operator):
         self.output = self.UNet.net(ay)
 
         # loss functional
-        self.loss = tf.sqrt(tf.reduce_sum(tf.square(self.output - ty), axis=(1,2,3)))
-        self.l2 = tf.reduce_mean(self.loss)
+        self.loss = self.loss_fct(self.output, ty, self.true_adjoint)
 
         # optimization algorithm
         self.global_step = tf.Variable(0, name='global_step', trainable=False)
-        self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.l2,
+        self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss,
                                                                              global_step=self.global_step)
 
         # some tensorboard logging
-        tf.summary.scalar('Loss_L2', self.l2)
         tf.summary.image('TrueData', ty, max_outputs=2)
         tf.summary.image('ApprData', ay, max_outputs=2)
         tf.summary.image('NetworkOutput', self.output, max_outputs=2)
@@ -309,10 +315,37 @@ class model_correction(np_operator):
                                                  self.learning_rate:learning_rate})
 
     def log(self, true_data, apr_data):
-        iteration, loss, summary = self.sess.run([self.global_step, self.l2, self.merged],
+        iteration, loss, summary = self.sess.run([self.global_step, self.loss, self.merged],
                       feed_dict={self.approximate_y: apr_data, self.true_y: true_data})
         self.writer.add_summary(summary, iteration)
         print('Iteration: {}, L2Loss: {}'.format(iteration, loss))
+
+class model_correction_adjoint_regularization(model_correction):
+    def __init__(self, path, image_size, measurement_size, approx_op):
+        super(model_correction_adjoint_regularization, self).__init__(path, image_size, measurement_size, approx_op)
+        approx_adj = approx_op.adjoint
+        self.tf_appr_adjoint = as_tensorflow_layer(approx_adj, name='Approximate_Operator')
+
+    def loss_fct(self, output, true_meas, adjoint):
+        l2 = super(model_correction_adjoint_regularization, self).loss_fct(output, true_meas)
+        ### the adjoint loss functionals ###
+        apr_x = self.tf_appr_adjoint(self.gradients)
+        loss_adj = tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(apr_x - adjoint, axis=(1,2,3)))))
+        tf.summary.scalar(loss_adj, 'Loss_Adjoint')
+        total_loss = loss_adj+l2
+        return total_loss
+
+    def train(self, true_data, apr_data, direction, adjoints, learning_rate):
+        # the feeded 'adjoints' the results of the adjoint of the true operator evaluated
+        self.sess.run(self.optimizer, feed_dict={self.approximate_y: apr_data, self.true_y: true_data,
+                                                 self.direction: direction, self.true_adjoint: adjoints,
+                                                 self.learning_rate:learning_rate})
+
+    def log(self, true_data, apr_data, direction, adjoints):
+        iteration, summary = self.sess.run([self.global_step, self.merged],
+                      feed_dict={self.approximate_y: apr_data, self.true_y: true_data,
+                                self.direction: direction, self.true_adjoint: adjoints,})
+        self.writer.add_summary(summary, iteration)
 
 # Class that handels the datasets and training
 class framework(object):
@@ -327,6 +360,10 @@ class framework(object):
     # tv parameter
     tv_param = 0.001
 
+    @property
+    def correction_model(self):
+        return model_correction
+
     def __init__(self):
         # finding the correct path extensions for saving models
         name = platform.node()
@@ -334,7 +371,7 @@ class framework(object):
         if name == 'motel':
             path_prefix = '/local/scratch/public/sl767/ModelCorrection/'
         else:
-            path_prefix = '../'
+            path_prefix = ''
 
         # setting the training data
         data_path = path_prefix + 'Data/{}/'.format(self.data_set_name)
@@ -363,7 +400,7 @@ class framework(object):
         self.exact_odl = as_odl_operator(self.exact_operator)
 
         # initialize the correction operator
-        self.cor_operator = model_correction(self.path, self.measurement_size)
+        self.cor_operator = self.correction_model(self.path, self.image_size, self.measurement_size)
         self.cor_odl = as_odl_operator(self.cor_operator)
 
     def train_correction(self, steps, batch_size, learning_rate):
@@ -406,15 +443,15 @@ class framework(object):
 
     def tv_generic(self, data, corrected=True, param=tv_param):
         if corrected:
-            operator=self.odl_cor*self.odl_pat
+            operator = self.odl_cor * self.odl_pat
         else:
-            operator=self.odl_pat
+            operator = self.odl_pat
         if len(data.shape) == 3:
             result = np.zeros(shape=(data.shape[0], self.image_size[0], self.image_size[1]))
             for k in range(data.shape[0]):
-                starting_point = self.pat_operator.inverse(data[k,...])
-                result[k,...] = self._tv_reconstruction(y=data[k,...], start_point=starting_point,
-                                                       operator=operator, param=param)
+                starting_point = self.pat_operator.inverse(data[k, ...])
+                result[k, ...] = self._tv_reconstruction(y=data[k, ...], start_point=starting_point,
+                                                         operator=operator, param=param)
         else:
             starting_point = self.pat_operator.inverse(data)
             result = self._tv_reconstruction(y=data, start_point=starting_point, operator=operator, param=param)
@@ -427,16 +464,37 @@ class framework(object):
             appr, true, image = data[0], data[1], data[2]
         recon = self.tv_generic(data=true, corrected=corrected, param=param)
         # compute L2 error
-        l2 = np.average(np.sqrt(np.sum(np.square(recon-image), axis=(1,2))))
+        l2 = np.average(np.sqrt(np.sum(np.square(recon - image), axis=(1, 2))))
         # comput L2 error with naive methode for comparison
         pseude_inverse = self.pat_operator.inverse(true)
-        l2_pi = np.average(np.sqrt(np.sum(np.square(pseude_inverse-image), axis=(1,2))))
+        l2_pi = np.average(np.sqrt(np.sum(np.square(pseude_inverse - image), axis=(1, 2))))
         print('Parameter: {}, L2 PseudoInv: {}, L2 Variational: {}'.format(param, l2_pi, l2))
         return l2
 
     def find_tv_param(self, param_list, corrected=False):
         appr, true, image = self.data_sets.train.next_batch(1)
         for param in param_list:
-           self.evaluate_tv(param=param, corrected=corrected, data=[appr, true, image])
+            self.evaluate_tv(param=param, corrected=corrected, data=[appr, true, image])
+
+
+class framework_regularised(framework):
+    experiment_name = 'Adjoint_regularization'
+
+    @property
+    def correction_model(self):
+        return model_correction_adjoint_regularization
+
+    def train_correction(self, steps, batch_size, learning_rate):
+        for k in range(steps):
+            appr, true, image = self.data_sets.train.next_batch(batch_size)
+            direction = self.appr_operator.evaluate(image)-true
+            adjoints = self.exact_operator.differentiate(0,direction)
+            self.cor_operator.train(true_data=true, apr_data=appr, direction=direction, adjoints=adjoints,
+                                    learning_rate=learning_rate)
+            if k % 20 == 0:
+                appr, true, image = self.data_sets.test.next_batch(batch_size)
+                self.cor_operator.log(true_data=true, apr_data=appr, direction=direction, adjoints=adjoints)
+        self.cor_operator.save()
+
 
 
