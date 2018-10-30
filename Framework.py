@@ -476,7 +476,6 @@ class framework(object):
         for param in param_list:
             self.evaluate_tv(param=param, corrected=corrected, data=[appr, true, image])
 
-
 class framework_regularised(framework):
     experiment_name = 'Adjoint_regularization'
 
