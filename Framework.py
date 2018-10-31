@@ -151,7 +151,7 @@ class exact_PAT_operator(np_operator):
     # matrix multiplication with the adjoint of the matrix
     def differentiate(self, point, direction):
         if len(direction) == 3:
-            res = np.zeros(direction.shape[0]., self.input_dim[0], self.input_dim[1])
+            res = np.zeros(shape=(direction.shape[0], self.input_dim[0], self.input_dim[1]))
             for k in range(direction.shape[0]):
                 res[k,...] = np.flipud(np.reshape(np.matmul(np.transpose(self.m),
                                                             np.reshape(np.asarray(direction[k,...]), self.output_sq)),
