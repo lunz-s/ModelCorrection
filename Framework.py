@@ -307,7 +307,8 @@ class model_correction_adjoint_regularization(model_correction):
         ### the adjoint loss functionals ###
         print(self.gradients.shape)
         apr_x = self.tf_appr_adjoint(tf.expand_dims(self.gradients, axis=-1))
-        loss_adj = tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(apr_x - tf.expand_dims(adjoint, axis=-1), axis=(1,2,3)))))
+        loss_adj = tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(apr_x - tf.expand_dims(adjoint, axis=-1)),
+                                                        axis=(1,2,3))))
         tf.summary.scalar(loss_adj, 'Loss_Adjoint')
         total_loss = loss_adj+l2
         return total_loss
