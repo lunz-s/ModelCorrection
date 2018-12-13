@@ -67,9 +67,12 @@ class Regularized(model_correction):
         self.loss_adj = tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(apr_x - true_x), axis=(1, 2))))
         tf.summary.scalar('Loss_Adjoint', self.loss_adj)
 
-        # optimization algorithm
-        self.total_loss = self.loss_adj + self.l2
+        # empiric value to ensure both losses are of the same order
+        weighting_factor = 2
+        self.total_loss = weighting_factor*self.loss_adj + self.l2
         tf.summary.scalar('TotalLoss', self.total_loss)
+
+        # Optimizer
         self.global_step = tf.Variable(0, name='global_step', trainable=False)
         self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.total_loss,
                                                                              global_step=self.global_step)
