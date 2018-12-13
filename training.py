@@ -5,7 +5,7 @@ import platform
 from Framework import approx_PAT_matrix as ApproxPAT
 from Framework import exact_PAT_operator as ExactPAT
 
-if platform.platform() == 'motel':
+if platform.node() == 'motel':
     prefix = '/local/scratch/public/sl767/ModelCorrection'
 else:
     prefix = ''
