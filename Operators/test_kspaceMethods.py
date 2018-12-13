@@ -11,11 +11,8 @@
 
 
 #import Load_PAT3D_fast_16beam_eval as loadPAT
-import Load_PAT2D_data as loadData
+from Operators import Load_PAT2D_data as loadData, fastPAT
 import matplotlib.pyplot as plt
-
-import fastPAT
-
 
 #dataSetTest   = '../saveData/GradTest_Beam16_Iter1.mat'
 #dataPAT = loadPAT.read_data_sets(dataSetTest)
@@ -25,14 +22,14 @@ MEASDATA   = 'data/testDataSet.mat'
 measData=loadData.read_data_sets(MEASDATA, MEASDATA)
 
 KGRID_BACK  = 'data/kgrid_small.mat'
-kgridBack=fastPAT.kgrid(KGRID_BACK)
+kgridBack= fastPAT.kgrid(KGRID_BACK)
 
 KGRID_FORW  = 'data/kgrid_smallForw.mat'
-kgridForw=fastPAT.kgrid(KGRID_FORW)
+kgridForw= fastPAT.kgrid(KGRID_FORW)
 
 
 angThresh=60
-kspaceMethod=fastPAT.fastPAT(kgridBack,kgridForw,angThresh)
+kspaceMethod= fastPAT.fastPAT(kgridBack, kgridForw, angThresh)
 
 #Some consistency tests of projections
 sampleIdx=80

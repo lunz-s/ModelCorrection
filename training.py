@@ -1,18 +1,32 @@
-import Framework as fr
-import numpy as np
-import matplotlib.pyplot as plt
+from Adjoint_regularizition import Regularized
+from Adjoint_network import TwoNets
+import Operators.Load_PAT2D_data as PATdata
+import platform
+from Framework import approx_PAT_matrix as ApproxPAT
+from Framework import exact_PAT_operator as ExactPAT
 
-frame = fr.framework_regularised()
-batch_size = 64
-learning_rate = 0.001
-frame.train_correction(2, batch_size=batch_size, learning_rate=learning_rate)
-print('Test Training Successful')
-for k in range(20):
-    rate = learning_rate/(k+3)
-    frame.train_correction(2000, batch_size=batch_size, learning_rate=rate)
+if platform.platform() == 'motel':
+    prefix = '/local/scratch/public/sl767/ModelCorrection'
+else:
+    prefix = ''
 
-###
-# list = []
-# for k in range(10):
-#     list.append(3**(k-7))
-# frame.find_tv_param(list)
+matrix_path = prefix+'Data/Matrices/threshSingleMatrix4Py.mat'
+data_path = prefix+'Data/balls64/'
+saves_path = prefix+'Saves/balls64/'
+
+train_append = 'trainDataSet.mat'
+test_append = 'testDataSet.mat'
+data_sets = PATdata.read_data_sets(data_path + train_append, data_path + test_append)
+
+input_dim = data_sets.train.image_resolution
+output_dim = data_sets.train.y_resolution
+
+approx = ApproxPAT(matrix_path=matrix_path, input_dim=input_dim, output_dim=output_dim)
+exact = ExactPAT(matrix_path=matrix_path, input_dim=input_dim, output_dim=output_dim)
+
+correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, data_sets=data_sets)
+
+for i in range(100):
+    for k in range(200):
+        correction.train(1e-4)
+    correction.log()

@@ -11,7 +11,7 @@
 
 
 #import Load_PAT3D_fast_16beam_eval as loadPAT
-import Load_PAT2D_data as loadData
+from Operators import Load_PAT2D_data as loadData
 import matplotlib.pyplot as plt
 
 import h5py
@@ -21,7 +21,7 @@ import numpy as np
 #dataPAT = loadPAT.read_data_sets(dataSetTest)
 
 
-MEASDATA   = '../data/testDataSet.mat'
+MEASDATA = '../data/testDataSet.mat'
 measData=loadData.read_data_sets(MEASDATA)
 
 

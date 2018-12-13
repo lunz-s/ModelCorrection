@@ -34,15 +34,15 @@ class DataSet(object):
     self._epochs_completed = 0
     self._index_in_epoch = 0
 
-
-  def get_image_resolution(self):
+  @property
+  def image_resolution(self):
     shape = self._imagTru.shape
     return (shape[1], shape[2])
 
-  def get_y_resolution(self):
+  @property
+  def y_resolution(self):
     shape = self._dataTru.shape
     return (shape[1], shape[2])
-
 
   @property
   def dataApr(self):
