@@ -62,11 +62,10 @@ class TwoNets(model_correction):
             # Direction the adjoint correction is calculated in
             self.direction = self.UNet.net(ty) - ty
 
-            # some tensorboard logging
-            tf.summary.image('TrueData', ty, max_outputs=1)
-            tf.summary.image('ApprData', ay, max_outputs=1)
-            tf.summary.image('NetworkData', self.output, max_outputs=1)
-
+        # some tensorboard logging
+        tf.summary.image('TrueData', ty, max_outputs=1)
+        tf.summary.image('ApprData', ay, max_outputs=1)
+        tf.summary.image('NetworkData', self.output, max_outputs=1)
         tf.summary.scalar('Loss_L2', self.l2)
 
         # placeholders
@@ -84,11 +83,10 @@ class TwoNets(model_correction):
             self.step_adjoint = tf.Variable(0, name='Step', trainable=False)
             self.optimizer_adjoint = tf.train.AdamOptimizer(self.learning_rate).minimize(self.l2_adj,
                                                                                  global_step=self.step_adjoint)
-            # some tensorboard logging
-            tf.summary.image('TrueAdjoint', self.true_x, max_outputs=1)
-            tf.summary.image('ApprAdjoint', self.approximate_x, max_outputs=1)
-            tf.summary.image('NetworkAdjoint', self.correct_adj, max_outputs=1)
-
+        # some tensorboard logging
+        tf.summary.image('TrueAdjoint', self.true_x, max_outputs=1)
+        tf.summary.image('ApprAdjoint', self.approximate_x, max_outputs=1)
+        tf.summary.image('NetworkAdjoint', self.correct_adj, max_outputs=1)
         tf.summary.scalar('Loss_Adjoint', self.l2_adj)
 
         self.merged = tf.summary.merge_all()

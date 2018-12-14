@@ -39,8 +39,9 @@ if n == '1' or n == '0':
 
     for i in range(70):
         for k in range(200):
-            correction.train(rate/10)
+            correction.train(rate / 10.0)
         correction.log()
+    correction.end()
 
 if n == '2' or n == '0':
     correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, data_sets=data_sets)
@@ -53,8 +54,9 @@ if n == '2' or n == '0':
 
     for i in range(70):
         for k in range(200):
-            correction.train(rate / 10)
+            correction.train(rate / 10.0)
         correction.log()
+    correction.end()
 
 if n == '3' or n == '0':
     correction = Unregularized(path=saves_path, true_np=exact, appr_np=approx, data_sets=data_sets)
@@ -67,6 +69,7 @@ if n == '3' or n == '0':
 
     for i in range(70):
         for k in range(200):
-            correction.train(rate / 10)
+            correction.train(rate / 10.0)
         correction.log()
+    correction.end()
 
