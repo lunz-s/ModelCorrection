@@ -68,7 +68,7 @@ class Regularized(model_correction):
         tf.summary.scalar('Loss_Adjoint', self.loss_adj)
 
         # empiric value to ensure both losses are of the same order
-        weighting_factor = 5
+        weighting_factor = 7
         self.total_loss = weighting_factor*self.loss_adj + self.l2
         tf.summary.scalar('TotalLoss', self.total_loss)
 

@@ -24,18 +24,15 @@ class TwoNets(model_correction):
         self.true_op = true_np
         self.appr_op = appr_np
 
+        # extract matrices for efficient tensorflow implementation during training
+        self.m_true = tf.constant(self.true_op.m, dtype=tf.float32)
+        self.m_appr = tf.constant(self.appr_op.m, dtype=tf.float32)
+
         def multiply(tensor, matrix):
             shape = tf.shape(tensor)
             reshaped = tf.reshape(tensor, [-1, shape[1]*shape[2], 1])
             result = tf.tensordot(reshaped, matrix, axes=[[1], [0]])
             return tf.reshape(result, [-1, shape[1], shape[2], 1])
-
-        # extract matrices for efficient tensorflow implementation during training
-        self.m_true = tf.constant(self.true_op.m, dtype=tf.float32)
-        self.m_appr = tf.constant(self.appr_op.m, dtype=tf.float32)
-
-        # start tensorflow sesssion
-        self.sess = tf.InteractiveSession()
 
         ### The forward network ###
 
@@ -56,20 +53,21 @@ class TwoNets(model_correction):
             # forward loss
             loss = tf.sqrt(tf.reduce_sum(tf.square(self.output - ty), axis=(1,2,3)))
             self.l2 = tf.reduce_mean(loss)
-            tf.summary.scalar('L2', self.l2)
 
             # optimization algorithm
             self.global_step = tf.Variable(0, name='Step', trainable=False)
             self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.l2,
                                                                                  global_step=self.global_step)
 
+            # Direction the adjoint correction is calculated in
+            self.direction = self.UNet.net(ty) - ty
+
             # some tensorboard logging
             tf.summary.image('TrueData', ty, max_outputs=1)
             tf.summary.image('ApprData', ay, max_outputs=1)
             tf.summary.image('NetworkData', self.output, max_outputs=1)
 
-            # Direction the adjoint correction is calculated in
-            self.direction = self.UNet.net(ty) - ty
+        tf.summary.scalar('Loss_L2', self.l2)
 
         # placeholders
         self.approximate_x = multiply(self.direction, tf.transpose(self.m_appr))
@@ -81,7 +79,6 @@ class TwoNets(model_correction):
             # forward loss
             loss = tf.sqrt(tf.reduce_sum(tf.square(self.correct_adj - self.true_x), axis=(1,2,3)))
             self.l2_adj = tf.reduce_mean(loss)
-            tf.summary.scalar('L2', self.l2_adj)
 
             # optimization algorithm
             self.step_adjoint = tf.Variable(0, name='Step', trainable=False)
@@ -91,6 +88,8 @@ class TwoNets(model_correction):
             tf.summary.image('TrueAdjoint', self.true_x, max_outputs=1)
             tf.summary.image('ApprAdjoint', self.approximate_x, max_outputs=1)
             tf.summary.image('NetworkAdjoint', self.correct_adj, max_outputs=1)
+
+        tf.summary.scalar('Loss_Adjoint', self.l2_adj)
 
         self.merged = tf.summary.merge_all()
         self.writer = tf.summary.FileWriter(self.path + 'Logs/', self.sess.graph)

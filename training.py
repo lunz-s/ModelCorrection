@@ -1,5 +1,6 @@
 from Adjoint_regularizition import Regularized
 from Adjoint_network import TwoNets
+from No_regularization import Unregularized
 import Operators.Load_PAT2D_data as PATdata
 import platform
 from Framework import approx_PAT_matrix as ApproxPAT
@@ -27,18 +28,45 @@ exact = ExactPAT(matrix_path=matrix_path, input_dim=input_dim, output_dim=output
 
 n = sys.argv[1]
 
-if n == '1':
+if n == '1' or n == '0':
     correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, data_sets=data_sets)
 
-    for i in range(100):
+    rate = 5e-5
+    for i in range(70):
         for k in range(200):
-            correction.train(1e-4)
+            correction.train(rate)
         correction.log()
 
-if n == '2':
+    for i in range(70):
+        for k in range(200):
+            correction.train(rate/10)
+        correction.log()
+
+if n == '2' or n == '0':
     correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, data_sets=data_sets)
 
-    for i in range(100):
+    rate = 5e-5
+    for i in range(70):
         for k in range(200):
-            correction.train(1e-4)
+            correction.train(rate)
         correction.log()
+
+    for i in range(70):
+        for k in range(200):
+            correction.train(rate / 10)
+        correction.log()
+
+if n == '3' or n == '0':
+    correction = Unregularized(path=saves_path, true_np=exact, appr_np=approx, data_sets=data_sets)
+
+    rate = 5e-5
+    for i in range(70):
+        for k in range(200):
+            correction.train(rate)
+        correction.log()
+
+    for i in range(70):
+        for k in range(200):
+            correction.train(rate / 10)
+        correction.log()
+
