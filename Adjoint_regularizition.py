@@ -68,7 +68,7 @@ class Regularized(model_correction):
         tf.summary.scalar('Loss_Adjoint', self.loss_adj)
 
         # empiric value to ensure both losses are of the same order
-        weighting_factor = 2
+        weighting_factor = 5
         self.total_loss = weighting_factor*self.loss_adj + self.l2
         tf.summary.scalar('TotalLoss', self.total_loss)
 
@@ -78,9 +78,11 @@ class Regularized(model_correction):
                                                                              global_step=self.global_step)
 
         # some tensorboard logging
-        tf.summary.image('TrueData', ty, max_outputs=2)
-        tf.summary.image('ApprData', ay, max_outputs=2)
-        tf.summary.image('NetworkOutput', self.output, max_outputs=2)
+        tf.summary.image('TrueData', ty, max_outputs=1)
+        tf.summary.image('ApprData', ay, max_outputs=1)
+        tf.summary.image('NetworkData', self.output, max_outputs=1)
+        tf.summary.image('TrueAdjoint', true_x, max_outputs=1)
+        tf.summary.image('NetworkAdjoint', apr_x, max_outputs=1)
 
         self.merged = tf.summary.merge_all()
         self.writer = tf.summary.FileWriter(self.path + 'Logs/', self.sess.graph)

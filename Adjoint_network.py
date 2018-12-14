@@ -24,6 +24,12 @@ class TwoNets(model_correction):
         self.true_op = true_np
         self.appr_op = appr_np
 
+        def multiply(tensor, matrix):
+            shape = tf.shape(tensor)
+            reshaped = tf.reshape(tensor, [-1, shape[1]*shape[2], 1])
+            result = tf.tensordot(reshaped, matrix, axes=[[1], [0]])
+            return tf.reshape(result, [-1, shape[1], shape[2], 1])
+
         # extract matrices for efficient tensorflow implementation during training
         self.m_true = tf.constant(self.true_op.m, dtype=tf.float32)
         self.m_appr = tf.constant(self.appr_op.m, dtype=tf.float32)
@@ -58,16 +64,16 @@ class TwoNets(model_correction):
                                                                                  global_step=self.global_step)
 
             # some tensorboard logging
-            tf.summary.image('TrueData', ty, max_outputs=2)
-            tf.summary.image('ApprData', ay, max_outputs=2)
-            tf.summary.image('NetworkOutput', self.output, max_outputs=2)
+            tf.summary.image('TrueData', ty, max_outputs=1)
+            tf.summary.image('ApprData', ay, max_outputs=1)
+            tf.summary.image('NetworkData', self.output, max_outputs=1)
 
             # Direction the adjoint correction is calculated in
             self.direction = self.UNet.net(ty) - ty
 
         # placeholders
-        self.approximate_x = tf.tensordot([self.direction, tf.transpose(self.m_appr)], axes=(1, 2))
-        self.true_x = tf.tensordot([self.direction, tf.transpose(self.m_true)], axes=(1, 2))
+        self.approximate_x = multiply(self.direction, tf.transpose(self.m_appr))
+        self.true_x = multiply(self.direction, tf.transpose(self.m_true))
 
         # add a channel dimension
         ax = tf.expand_dims(self.approximate_x, axis=3)
@@ -86,9 +92,9 @@ class TwoNets(model_correction):
             self.optimizer_adjoint = tf.train.AdamOptimizer(self.learning_rate).minimize(self.l2_adj,
                                                                                  global_step=self.step_adjoint)
             # some tensorboard logging
-            tf.summary.image('TrueData', tx, max_outputs=2)
-            tf.summary.image('ApprData', ay, max_outputs=2)
-            tf.summary.image('NetworkOutput', self.correct_adj, max_outputs=2)
+            tf.summary.image('TrueAdjoint', tx, max_outputs=1)
+            tf.summary.image('ApprAdjoint', ay, max_outputs=1)
+            tf.summary.image('NetworkAdjoint', self.correct_adj, max_outputs=1)
 
         self.merged = tf.summary.merge_all()
         self.writer = tf.summary.FileWriter(self.path + 'Logs/', self.sess.graph)
