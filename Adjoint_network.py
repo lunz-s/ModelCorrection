@@ -75,15 +75,11 @@ class TwoNets(model_correction):
         self.approximate_x = multiply(self.direction, tf.transpose(self.m_appr))
         self.true_x = multiply(self.direction, tf.transpose(self.m_true))
 
-        # add a channel dimension
-        ax = tf.expand_dims(self.approximate_x, axis=3)
-        tx = tf.expand_dims(self.true_x, axis=3)
-
         with tf.variable_scope('Adjoint_Correction'):
-            self.correct_adj = self.UNet.net(ax)
+            self.correct_adj = self.UNet.net(self.approximate_x)
 
             # forward loss
-            loss = tf.sqrt(tf.reduce_sum(tf.square(self.correct_adj - tx), axis=(1,2,3)))
+            loss = tf.sqrt(tf.reduce_sum(tf.square(self.correct_adj - self.true_x), axis=(1,2,3)))
             self.l2_adj = tf.reduce_mean(loss)
             tf.summary.scalar('L2', self.l2_adj)
 
@@ -92,8 +88,8 @@ class TwoNets(model_correction):
             self.optimizer_adjoint = tf.train.AdamOptimizer(self.learning_rate).minimize(self.l2_adj,
                                                                                  global_step=self.step_adjoint)
             # some tensorboard logging
-            tf.summary.image('TrueAdjoint', tx, max_outputs=1)
-            tf.summary.image('ApprAdjoint', ay, max_outputs=1)
+            tf.summary.image('TrueAdjoint', self.true_x, max_outputs=1)
+            tf.summary.image('ApprAdjoint', self.approximate_x, max_outputs=1)
             tf.summary.image('NetworkAdjoint', self.correct_adj, max_outputs=1)
 
         self.merged = tf.summary.merge_all()
