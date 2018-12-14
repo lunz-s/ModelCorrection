@@ -28,7 +28,7 @@ exact = ExactPAT(matrix_path=matrix_path, input_dim=input_dim, output_dim=output
 n = sys.argv[1]
 print(n)
 
-if n == 1:
+if n == '1':
     correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, data_sets=data_sets)
 
     for i in range(100):
@@ -36,7 +36,7 @@ if n == 1:
             correction.train(1e-4)
         correction.log()
 
-if n == 2:
+if n == '2':
     correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, data_sets=data_sets)
 
     for i in range(100):
