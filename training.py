@@ -41,6 +41,5 @@ if n == '2':
 
     for i in range(100):
         for k in range(200):
-            correction.train_forward(1e-4)
-            correction.train_adjoint(1e-4)
+            correction.train(1e-4)
         correction.log()

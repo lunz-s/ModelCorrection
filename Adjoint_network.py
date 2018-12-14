@@ -131,6 +131,13 @@ class TwoNets(model_correction):
         self.sess.run(self.optimizer_adjoint, feed_dict={self.approximate_y: appr, self.true_y: true,
                                                  self.learning_rate: learning_rate})
 
+    def train(self, learning_rate):
+        appr, true, image = self.data_sets.train.next_batch(self.batch_size)
+        self.sess.run(self.optimizer, feed_dict={self.approximate_y: appr, self.true_y: true,
+                                                 self.learning_rate: learning_rate})
+        self.sess.run(self.optimizer_adjoint, feed_dict={self.approximate_y: appr, self.true_y: true,
+                                                 self.learning_rate: learning_rate})
+
     def log(self):
         appr, true, image = self.data_sets.test.next_batch(self.batch_size)
         iteration, summary = self.sess.run([self.global_step, self.merged],
