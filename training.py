@@ -26,6 +26,7 @@ approx = ApproxPAT(matrix_path=matrix_path, input_dim=input_dim, output_dim=outp
 exact = ExactPAT(matrix_path=matrix_path, input_dim=input_dim, output_dim=output_dim)
 
 n = sys.argv[1]
+print(n)
 
 if n == 1:
     correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, data_sets=data_sets)
