@@ -160,6 +160,24 @@ class approx_PAT_matrix(np_operator):
         return res
 
 
+    # Finds the inverse
+    def inverse(self, y):
+        if len(y.shape) == 3:
+            res = np.zeros(shape=(y.shape[0], self.input_dim[0], self.input_dim[1]))
+            for k in range(y.shape[0]):
+                inp = np.reshape(np.asarray(y[k, ...]), self.output_sq)
+                sol = np.linalg.solve(self.m, inp)
+                res[k, ...] = np.flipud(np.reshape(sol, [self.input_dim[0], self.input_dim[1]]))
+        elif len(y.shape) == 2:
+            inp = np.reshape(np.asarray(y), self.output_sq)
+            sol = np.linalg.solve(self.m, inp)
+            res = np.flipud(np.reshape(sol, [self.input_dim[0], self.input_dim[1]]))
+        else:
+            raise ValueError
+        return res
+
+
+
 # the exact PAT as numpy operator
 class exact_PAT_operator(np_operator):
     def __init__(self, matrix_path, input_dim, output_dim):
