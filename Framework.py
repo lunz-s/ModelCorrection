@@ -95,7 +95,7 @@ class approx_PAT_operator(np_operator):
 
     def evaluate(self, y):
         if len(y.shape) == 4:
-            res = np.zeros(shape=(y.shape[0], self.output_dim[0], self.output_dim[1],0))
+            res = np.zeros(shape=(y.shape[0], self.output_dim[0], self.output_dim[1], 1))
             for k in range(y.shape[0]):
                 res[k,...,0] = self.PAT_OP.kspace_forward(y[k,...,0])
         elif len(y.shape) == 2:
@@ -109,7 +109,7 @@ class approx_PAT_operator(np_operator):
 
     def inverse(self, y):
         if len(y.shape) == 4:
-            res = np.zeros(shape=(y.shape[0], self.input_dim[0], self.input_dim[1], 0))
+            res = np.zeros(shape=(y.shape[0], self.input_dim[0], self.input_dim[1], 1))
             for k in range(y.shape[0]):
                 res[k,...,0] = self.PAT_OP.kspace_inverse(y[k,...,0])
         elif len(y.shape) == 2:
@@ -134,7 +134,7 @@ class approx_PAT_matrix(np_operator):
     def evaluate(self, y):
         y = np.flipud(np.asarray(y))
         if len(y.shape) == 4:
-            res = np.zeros(shape=(y.shape[0], self.output_dim[0], self.output_dim[1], 0))
+            res = np.zeros(shape=(y.shape[0], self.output_dim[0], self.output_dim[1], 1))
             for k in range(y.shape[0]):
                 res[k,..., 0] = np.reshape(np.matmul(self.m, np.reshape(y[k,..., 0], self.input_sq)),
                                         [self.output_dim[0], self.output_dim[1]])
@@ -147,7 +147,7 @@ class approx_PAT_matrix(np_operator):
     # matrix multiplication with the adjoint of the matrix
     def differentiate(self, point, direction):
         if len(direction.shape) == 4:
-            res = np.zeros(shape=(direction.shape[0], self.input_dim[0], self.input_dim[1], 0))
+            res = np.zeros(shape=(direction.shape[0], self.input_dim[0], self.input_dim[1], 1))
             for k in range(direction.shape[0]):
                 res[k,...,0] = np.flipud(np.reshape(np.matmul(np.transpose(self.m),
                                                             np.reshape(np.asarray(direction[k,...,0]), self.output_sq)),
@@ -163,7 +163,7 @@ class approx_PAT_matrix(np_operator):
     # Finds the inverse
     def inverse(self, y):
         if len(y.shape) == 4:
-            res = np.zeros(shape=(y.shape[0], self.input_dim[0], self.input_dim[1], 0))
+            res = np.zeros(shape=(y.shape[0], self.input_dim[0], self.input_dim[1], 1))
             for k in range(y.shape[0]):
                 inp = np.reshape(np.asarray(y[k, ...,0]), self.output_sq)
                 sol = np.linalg.solve(self.m, inp)
@@ -195,7 +195,7 @@ class exact_PAT_operator(np_operator):
     def evaluate(self, y):
         y = np.flipud(np.asarray(y))
         if len(y.shape) == 4:
-            res = np.zeros(shape=(y.shape[0], self.output_dim[0], self.output_dim[1], 0))
+            res = np.zeros(shape=(y.shape[0], self.output_dim[0], self.output_dim[1], 1))
             for k in range(y.shape[0]):
                 res[k,...,0] = np.reshape(np.matmul(self.m, np.reshape(y[k,...,0], self.input_sq)),
                                         [self.output_dim[0], self.output_dim[1]])
@@ -208,7 +208,7 @@ class exact_PAT_operator(np_operator):
     # matrix multiplication with the adjoint of the matrix
     def differentiate(self, point, direction):
         if len(direction.shape) == 4:
-            res = np.zeros(shape=(direction.shape[0], self.input_dim[0], self.input_dim[1], 0))
+            res = np.zeros(shape=(direction.shape[0], self.input_dim[0], self.input_dim[1], 1))
             for k in range(direction.shape[0]):
                 res[k,...,0] = np.flipud(np.reshape(np.matmul(np.transpose(self.m),
                                                             np.reshape(np.asarray(direction[k,...,0]), self.output_sq)),
