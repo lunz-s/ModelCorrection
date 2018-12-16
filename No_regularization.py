@@ -37,29 +37,23 @@ class Unregularized(model_correction):
             return tf.reshape(result, [-1, shape[1], shape[2], 1])
 
         # placeholders
-        self.approximate_y = tf.placeholder(shape=[None, self.measurement_size[0], self.measurement_size[1]],
+        self.approximate_y = tf.placeholder(shape=[None, self.measurement_size[0], self.measurement_size[1], 1],
                                             dtype=tf.float32)
-        self.true_y = tf.placeholder(shape=[None, self.measurement_size[0], self.measurement_size[1]], dtype=tf.float32)
+        self.true_y = tf.placeholder(shape=[None, self.measurement_size[0], self.measurement_size[1], 1], dtype=tf.float32)
 
         # Learning parameters
         self.learning_rate = tf.placeholder(dtype=tf.float32)
 
-        # add a channel dimension
-        ay = tf.expand_dims(self.approximate_y, axis=3)
-        ty = tf.expand_dims(self.true_y, axis=3)
-
         # the network output
-        self.output = self.UNet.net(ay)
+        self.output = self.UNet.net(self.approximate_y)
 
         # l2 loss functional
-        loss = tf.sqrt(tf.reduce_sum(tf.square(self.output - ty), axis=(1, 2, 3)))
+        loss = tf.sqrt(tf.reduce_sum(tf.square(self.output - self.true_y), axis=(1, 2, 3)))
         self.l2 = tf.reduce_mean(loss)
         tf.summary.scalar('Loss_L2', self.l2)
 
-        # adjoint loss
-
         # compute the direction y_evalute as Psi y-y with y correct measurements
-        self.direction = self.UNet.net(ty)-ty
+        self.direction = self.UNet.net(self.true_y)-self.true_y
         scalar_prod = tf.reduce_sum(tf.multiply(self.output, self.direction))
         self.gradients = tf.gradients(scalar_prod, self.approximate_y)[0]
         apr_x = multiply(self.gradients, tf.transpose(self.m_appr))
@@ -77,11 +71,11 @@ class Unregularized(model_correction):
                                                                              global_step=self.global_step)
 
         # some tensorboard logging
-        tf.summary.image('TrueData', ty, max_outputs=1)
-        tf.summary.image('ApprData', ay, max_outputs=1)
-        tf.summary.image('NetworkOutput', self.output, max_outputs=1)
+        tf.summary.image('TrueData', self.true_y, max_outputs=1)
+        tf.summary.image('ApprData', self.approximate_y, max_outputs=1)
+        tf.summary.image('NetworkData', self.output, max_outputs=1)
         tf.summary.image('TrueAdjoint', true_x, max_outputs=1)
-        tf.summary.image('ApprAdjoint', apr_x, max_outputs=1)
+        tf.summary.image('NetworkAdjoint', apr_x, max_outputs=1)
 
         self.merged = tf.summary.merge_all()
         self.writer = tf.summary.FileWriter(self.path + 'Logs/', self.sess.graph)
@@ -94,9 +88,9 @@ class Unregularized(model_correction):
 
     def evaluate(self, y):
         y, change = self.feedable_format(y)
-        result = self.sess.run(self.output, feed_dict={self.approximate_y: y})[..., 0]
+        result = self.sess.run(self.output, feed_dict={self.approximate_y: y})
         if change:
-            result = result[0, ...]
+            result = result[0, ...,0]
         return result
 
     def differentiate(self, point, direction):
@@ -104,7 +98,7 @@ class Unregularized(model_correction):
         direction, _ = self.feedable_format(direction)
         result = self.sess.run(self.gradients, feed_dict={self.approximate_y: location, self.direction: direction})
         if change:
-            result = result[0, ...]
+            result = result[0, ... ,0]
         return result
 
     def train(self, learning_rate):

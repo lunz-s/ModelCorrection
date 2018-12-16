@@ -37,21 +37,17 @@ class TwoNets(model_correction):
         ### The forward network ###
 
         # placeholders
-        self.approximate_y = tf.placeholder(shape=[None, self.measurement_size[0], self.measurement_size[1]],
+        self.approximate_y = tf.placeholder(shape=[None, self.measurement_size[0], self.measurement_size[1],1],
                                             dtype=tf.float32)
-        self.true_y = tf.placeholder(shape=[None, self.measurement_size[0], self.measurement_size[1]], dtype=tf.float32)
+        self.true_y = tf.placeholder(shape=[None, self.measurement_size[0], self.measurement_size[1],1], dtype=tf.float32)
         self.learning_rate = tf.placeholder(dtype=tf.float32)
-
-        # add a channel dimension
-        ay = tf.expand_dims(self.approximate_y, axis=3)
-        ty = tf.expand_dims(self.true_y, axis=3)
 
         # the network output
         with tf.variable_scope('Forward_Correction'):
-            self.output = self.UNet.net(ay)
+            self.output = self.UNet.net(self.approximate_y)
 
             # forward loss
-            loss = tf.sqrt(tf.reduce_sum(tf.square(self.output - ty), axis=(1,2,3)))
+            loss = tf.sqrt(tf.reduce_sum(tf.square(self.output - self.true_y), axis=(1,2,3)))
             self.l2 = tf.reduce_mean(loss)
 
             # optimization algorithm
@@ -60,11 +56,11 @@ class TwoNets(model_correction):
                                                                                  global_step=self.global_step)
 
             # Direction the adjoint correction is calculated in
-            self.direction = self.UNet.net(ty) - ty
+            self.direction = self.UNet.net(self.true_y) - self.true_y
 
         # some tensorboard logging
-        tf.summary.image('TrueData', ty, max_outputs=1)
-        tf.summary.image('ApprData', ay, max_outputs=1)
+        tf.summary.image('TrueData', self.true_y, max_outputs=1)
+        tf.summary.image('ApprData', self.approximate_y, max_outputs=1)
         tf.summary.image('NetworkData', self.output, max_outputs=1)
         tf.summary.scalar('Loss_L2', self.l2)
 

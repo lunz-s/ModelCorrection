@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 import h5py
 
 
@@ -12,10 +12,10 @@ def extract_images(filename, imageName):
   rows = inData.shape[1]
   cols = inData.shape[2]
   print(num_images, rows, cols)
-  data = numpy.array(inData)
+  data = np.array(inData)
     
   data = data.reshape(num_images, rows, cols)
-  data = numpy.transpose(data,(0,2,1))
+  data = np.transpose(data,(0,2,1))
   return data
 
 
@@ -72,8 +72,8 @@ class DataSet(object):
       # Finished epoch
       self._epochs_completed += 1
       # Shuffle the data
-      perm = numpy.arange(self._num_examples)
-      numpy.random.shuffle(perm)
+      perm = np.arange(self._num_examples)
+      np.random.shuffle(perm)
       self._dataApr = self._dataApr[perm]
       self._dataTru = self._dataTru[perm]
       self._imagTru = self._imagTru[perm]
@@ -82,7 +82,8 @@ class DataSet(object):
       self._index_in_epoch = batch_size
       assert batch_size <= self._num_examples
     end = self._index_in_epoch
-    return self._dataApr[start:end], self._dataTru[start:end], self._imagTru[start:end]
+    return np.exp(self._dataApr[start:end], axis=-1), np.expand_dims(self._dataTru[start:end], axis=-1), \
+           np.expand_dims(self._imagTru[start:end], axis=-1)
 
 
 def read_data_sets(trainFileName, testFileName):
