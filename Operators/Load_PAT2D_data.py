@@ -82,7 +82,7 @@ class DataSet(object):
       self._index_in_epoch = batch_size
       assert batch_size <= self._num_examples
     end = self._index_in_epoch
-    return np.exp(self._dataApr[start:end], axis=-1), np.expand_dims(self._dataTru[start:end], axis=-1), \
+    return np.expand_dims(self._dataApr[start:end], axis=-1), np.expand_dims(self._dataTru[start:end], axis=-1), \
            np.expand_dims(self._imagTru[start:end], axis=-1)
 
 
