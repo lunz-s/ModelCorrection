@@ -96,7 +96,7 @@ class TwoNets(model_correction):
 
     def evaluate(self, x):
         y, change = self.feedable_format(x)
-        result = self.sess.run(self.output, feed_dict={self.approximate_y: y})[..., 0]
+        result = self.sess.run(self.output, feed_dict={self.approximate_y: y})
         if change:
             result = result[0,...]
         return result
@@ -107,7 +107,7 @@ class TwoNets(model_correction):
         result = self.sess.run(self.correct_adj, feed_dict={self.approximate_x: location,
                                                             self.direction: direction})
         if change:
-            result = result[0,...]
+            result = result[0,...,0]
         return result
 
     def train_forward(self, learning_rate):

@@ -89,9 +89,9 @@ class Regularized(model_correction):
 
     def evaluate(self, y):
         y, change = self.feedable_format(y)
-        result = self.sess.run(self.output, feed_dict={self.approximate_y: y})[..., 0]
+        result = self.sess.run(self.output, feed_dict={self.approximate_y: y})
         if change:
-            result = result[0, ...]
+            result = result[0, ..., 0]
         return result
 
     def differentiate(self, point, direction):
