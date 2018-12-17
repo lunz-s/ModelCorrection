@@ -49,8 +49,8 @@ class Regularized(model_correction):
         self.x_ini = multiply(tf.transpose(self.m_true), self.data_term)
 
         # Compute the corresponding measurements with the true and approximate operators
-        self.true_y = multiply(self.m_true, self.input_image)
-        self.approximate_y = multiply(self.m_appr, self.input_image)
+        self.true_y = multiply(self.input_image, self.m_true)
+        self.approximate_y = multiply(self.input_image, self.m_appr)
 
         # Learning parameters
         self.learning_rate = tf.placeholder(dtype=tf.float32)
