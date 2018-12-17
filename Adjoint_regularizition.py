@@ -103,7 +103,8 @@ class Regularized(model_correction):
             self.ground_truth = tf.placeholder(shape=[None, self.image_size[0], self.image_size[1], 1], dtype=tf.float32)
             adj = tf.summary.scalar('LossAdjoint', self.loss_adj)
             forward = tf.summary.scalar('LossForward', self.l2)
-            quality = tf.summary.scalar('Quality', tf.nn.l2_loss(self.input_image - self.ground_truth))
+            self.quality = tf.nn.l2_loss(self.input_image - self.ground_truth)
+            quality = tf.summary.scalar('Quality', self.quality)
             self.merged_optimization = tf.summary.merge([adj, forward, quality])
 
 
