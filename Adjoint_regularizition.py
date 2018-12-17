@@ -61,7 +61,6 @@ class Regularized(model_correction):
         # l2 loss functional
         loss = tf.sqrt(tf.reduce_sum(tf.square(self.output - self.true_y), axis=(1, 2, 3)))
         self.l2 = tf.reduce_mean(loss)
-        tf.summary.scalar('Loss_L2', self.l2)
 
         # compute the direction to evaluate the adjoint in
         self.direction = self.output-self.data_term
@@ -72,17 +71,20 @@ class Regularized(model_correction):
         self.apr_x = multiply(self.gradients, tf.transpose(self.m_appr))
         self.true_x = multiply(self.direction, tf.transpose(self.m_true))
         self.loss_adj = tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(self.apr_x - self.true_x), axis=(1, 2))))
-        tf.summary.scalar('Loss_Adjoint', self.loss_adj)
 
         # empiric value to ensure both losses are of the same order
         weighting_factor = 7
         self.total_loss = weighting_factor*self.loss_adj + self.l2
-        tf.summary.scalar('TotalLoss', self.total_loss)
 
         # Optimizer
         self.global_step = tf.Variable(0, name='global_step', trainable=False)
         self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.total_loss,
                                                                              global_step=self.global_step)
+
+        with tf.name_scope('Training'):
+            tf.summary.scalar('Loss_L2', self.l2)
+            tf.summary.scalar('Loss_Adjoint', self.loss_adj)
+            tf.summary.scalar('TotalLoss', self.total_loss)
 
         # some tensorboard logging
         with tf.name_scope('Forward'):
@@ -134,7 +136,6 @@ class Regularized(model_correction):
                                                      self.learning_rate: learning_rate})
             x = x-2*step_size*update
 
-
     def log(self, recursions, step_size):
         appr, true, image = self.data_sets.test.next_batch(self.batch_size)
         x = self.sess.run(self.x_ini, feed_dict={self.data_term: true})
@@ -151,7 +152,8 @@ class Regularized(model_correction):
         writer = tf.summary.FileWriter(self.path + 'Logs/Iteration_' + str(step)+'/')
         for k in range(recursions):
             summary, update = self.sess.run([self.merged_optimization, self.apr_x],
-                                   feed_dict={self.input_image: x, self.data_term: true ,
-                                              self.ground_truth: image})
+                               feed_dict={self.input_image: x, self.data_term: true,
+                                          self.ground_truth: image})
+            print(k)
             writer.add_summary(summary, k)
             x = x-2*step_size*update

@@ -39,10 +39,10 @@ if n == '1' or n == '0':
             correction.train(recursions, step_size, learning_rate=rate)
             if k % 50 == 0:
                 correction.log(recursions, step_size)
-        recursions = recursions+2
+        recursions = recursions+1
         correction.save()
         if i%2 == 0:
-            correction.log_optimization(recursions=20, step_size=step_size)
+            correction.log_optimization(recursions=10, step_size=step_size)
 
     for i in range(10):
         for k in range(2000):
@@ -51,7 +51,7 @@ if n == '1' or n == '0':
                 correction.log(recursions, step_size)
         correction.save()
 
-    correction.log_optimization(recursions=20, step_size=step_size)
+    correction.log_optimization(recursions=10, step_size=step_size)
     correction.end()
 
 if n == '2' or n == '0':
