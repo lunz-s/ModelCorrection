@@ -46,7 +46,7 @@ class Regularized(model_correction):
         self.data_term = tf.placeholder(shape=[None, self.measurement_size[0], self.measurement_size[1], 1], dtype=tf.float32)
 
         # methode to get the initial guess in tf
-        self.x_ini = multiply(tf.transpose(self.m_true), self.data_term)
+        self.x_ini = multiply(self.data_term, tf.transpose(self.m_true))
 
         # Compute the corresponding measurements with the true and approximate operators
         self.true_y = multiply(self.input_image, self.m_true)
