@@ -291,11 +291,12 @@ class model_correction(np_operator):
 
 
     @abstractmethod
-    def train(self, learning_rate):
+    def train(self, recursions, step_size, learning_rate):
+        # recursions defines the amount of steps of gradient descent to perform over the data term while training
         pass
 
     @abstractmethod
-    def log(self):
+    def log(self, step_size, recursions):
         pass
 
 

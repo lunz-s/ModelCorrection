@@ -32,20 +32,26 @@ if n == '1' or n == '0':
     correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, data_sets=data_sets)
 
     rate = 5e-5
+    recursions = 1
+    step_size = 0.15
     for i in range(10):
         for k in range(2000):
-            correction.train(rate)
-            if k % 100 == 0:
-                correction.log()
+            correction.train(recursions, step_size, learning_rate=rate)
+            if k % 50 == 0:
+                correction.log(recursions, step_size)
+        recursions = recursions+2
         correction.save()
+        if i%2 == 0:
+            correction.log_optimization(recursions=20, step_size=step_size)
 
     for i in range(10):
         for k in range(2000):
-            correction.train(rate/10.0)
-            if k % 100 == 0:
-                correction.log()
+            correction.train(recursions, step_size, rate/10.0)
+            if k % 50 == 0:
+                correction.log(recursions, step_size)
         correction.save()
 
+    correction.log_optimization(recursions=20, step_size=step_size)
     correction.end()
 
 if n == '2' or n == '0':
