@@ -166,4 +166,4 @@ class Regularized(model_correction):
             writer.add_summary(summary, k)
             x = x-2*step_size*update
         writer.flush()
-        writer.end()
+        writer.close()
