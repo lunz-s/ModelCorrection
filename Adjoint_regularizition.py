@@ -106,6 +106,12 @@ class Regularized(model_correction):
             self.quality = tf.nn.l2_loss(self.input_image - self.ground_truth)
             quality = tf.summary.scalar('Quality', self.quality)
             self.merged_optimization = tf.summary.merge([adj, forward, quality])
+            tf.summary.image('TrueData', self.true_y, max_outputs=1)
+            tf.summary.image('NetworkData', self.output, max_outputs=1)
+            tf.summary.image('TrueAdjoint', self.true_x, max_outputs=1)
+            tf.summary.image('NetworkAdjoint', self.apr_x, max_outputs=1)
+            tf.summary.image('GroundTruth', self.ground_truth, max_outputs=1)
+            tf.summary.image('Reconstruction', self.input_image, max_outputs=1)
 
 
         # initialize variables
@@ -133,14 +139,16 @@ class Regularized(model_correction):
         appr, true, image = self.data_sets.train.next_batch(self.batch_size)
         x = self.sess.run(self.x_ini, feed_dict={self.data_term: true})
         for k in range(recursions):
-            _, update = self.sess.run([self.optimizer, self.apr_x], feed_dict={self.input_image: x, self.data_term: true,
+            self.sess.run(self.optimizer, feed_dict={self.input_image: x, self.data_term: true,
+                                                     self.learning_rate: learning_rate})
+            update = self.sess.run(self.apr_x, feed_dict={self.input_image: x, self.data_term: true,
                                                      self.learning_rate: learning_rate})
             x = x-2*step_size*update
 
     def log(self, recursions, step_size):
         appr, true, image = self.data_sets.test.next_batch(self.batch_size)
         x = self.sess.run(self.x_ini, feed_dict={self.data_term: true})
-        for k in range(random.randint(0,recursions+1)):
+        for k in range(random.randint(1, recursions)):
             update = self.sess.run(self.apr_x, feed_dict={self.input_image: x, self.data_term: true})
             x = x-2*step_size*update
         iteration, summary = self.sess.run([self.global_step, self.merged],
@@ -155,6 +163,7 @@ class Regularized(model_correction):
             summary, update = self.sess.run([self.merged_optimization, self.apr_x],
                                feed_dict={self.input_image: x, self.data_term: true,
                                           self.ground_truth: image})
-            print(k)
             writer.add_summary(summary, k)
             x = x-2*step_size*update
+        writer.flush()
+        writer.end()
