@@ -34,17 +34,16 @@ if n == '1' or n == '0':
     rate = 5e-5
     recursions = 1
     step_size = 0.1
-    iterations = 1
+    iterations = 5
 
     for i in range(iterations):
         for k in range(1000):
             correction.train(recursions, step_size, learning_rate=rate)
             if k % 50 == 0:
                 correction.log(recursions, step_size)
-            if i % 200 == 0:
-                correction.log_optimization(recursions=40, step_size=step_size)
         # recursions = recursions+1
         correction.save()
+    correction.log_optimization(recursions=40, step_size=step_size)
 
     # for i in range(iterations):
     #     for k in range(1000):

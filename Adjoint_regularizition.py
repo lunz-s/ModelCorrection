@@ -138,6 +138,7 @@ class Regularized(model_correction):
     def train(self, recursions, step_size, learning_rate):
         appr, true, image = self.data_sets.train.next_batch(self.batch_size)
         x = self.sess.run(self.x_ini, feed_dict={self.data_term: true})
+
         for k in range(recursions):
             self.sess.run(self.optimizer, feed_dict={self.input_image: x, self.data_term: true,
                                                      self.learning_rate: learning_rate})
