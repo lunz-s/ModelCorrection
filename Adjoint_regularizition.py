@@ -65,15 +65,19 @@ class Regularized(model_correction):
         # compute the direction to evaluate the adjoint in
         self.direction = self.output-self.data_term
 
+        # Stop gradients from flowing back to the forward fit - adjoint fit shall not act as norm regularization
+        # on forward fit
+        dir = tf.stop_gradient(self.direction)
+
         # adjoint computation
-        scalar_prod = tf.reduce_sum(tf.multiply(self.output, self.direction))
+        scalar_prod = tf.reduce_sum(tf.multiply(self.output, dir))
         self.gradients = tf.gradients(scalar_prod, self.approximate_y)[0]
         self.apr_x = multiply(self.gradients, tf.transpose(self.m_appr))
-        self.true_x = multiply(self.direction, tf.transpose(self.m_true))
+        self.true_x = multiply(dir, tf.transpose(self.m_true))
         self.loss_adj = tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(self.apr_x - self.true_x), axis=(1, 2))))
 
         # empiric value to ensure both losses are of the same order
-        weighting_factor = 7
+        weighting_factor = 1
         self.total_loss = weighting_factor*self.loss_adj + self.l2
 
         # Optimizer
