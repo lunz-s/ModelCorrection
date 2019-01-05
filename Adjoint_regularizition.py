@@ -67,13 +67,13 @@ class Regularized(model_correction):
 
         # Stop gradients from flowing back to the forward fit - adjoint fit shall not act as norm regularization
         # on forward fit
-        dir = tf.stop_gradient(self.direction)
+        direction = tf.stop_gradient(self.direction)
 
         # adjoint computation
-        scalar_prod = tf.reduce_sum(tf.multiply(self.output, dir))
+        scalar_prod = tf.reduce_sum(tf.multiply(self.output, direction))
         self.gradients = tf.gradients(scalar_prod, self.approximate_y)[0]
         self.apr_x = multiply(self.gradients, tf.transpose(self.m_appr))
-        self.true_x = multiply(dir, tf.transpose(self.m_true))
+        self.true_x = multiply(direction, tf.transpose(self.m_true))
         self.loss_adj = tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(self.apr_x - self.true_x), axis=(1, 2))))
 
         # empiric value to ensure both losses are of the same order
@@ -109,13 +109,16 @@ class Regularized(model_correction):
             forward = tf.summary.scalar('LossForward', self.l2)
             self.quality = tf.nn.l2_loss(self.input_image - self.ground_truth)
             quality = tf.summary.scalar('Quality', self.quality)
-            self.merged_optimization = tf.summary.merge([adj, forward, quality])
+            data_term = tf.summary.scalar('DataTerm', tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(
+                self.direction), axis=(1,2,3)))))
+            self.merged_opt = tf.summary.merge([data_term, adj, forward, quality])
             tf.summary.image('TrueData', self.true_y, max_outputs=1)
             tf.summary.image('NetworkData', self.output, max_outputs=1)
             tf.summary.image('TrueAdjoint', self.true_x, max_outputs=1)
             tf.summary.image('NetworkAdjoint', self.apr_x, max_outputs=1)
             tf.summary.image('GroundTruth', self.ground_truth, max_outputs=1)
             tf.summary.image('Reconstruction', self.input_image, max_outputs=1)
+
 
 
         # initialize variables
@@ -165,7 +168,7 @@ class Regularized(model_correction):
         step, x = self.sess.run([self.global_step, self.x_ini], feed_dict={self.data_term: true})
         writer = tf.summary.FileWriter(self.path + 'Logs/Iteration_' + str(step)+'/')
         for k in range(recursions):
-            summary, update = self.sess.run([self.merged_optimization, self.apr_x],
+            summary, update = self.sess.run([self.merged_opt, self.apr_x],
                                feed_dict={self.input_image: x, self.data_term: true,
                                           self.ground_truth: image})
             writer.add_summary(summary, k)

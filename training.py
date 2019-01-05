@@ -28,6 +28,10 @@ exact = ExactPAT(matrix_path=matrix_path, input_dim=input_dim, output_dim=output
 
 n = sys.argv[1]
 
+if n == '-1':
+    correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, data_sets=data_sets)
+    correction.log_optimization(recursions=40, step_size=0.05)
+
 if n == '1' or n == '0':
     correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, data_sets=data_sets)
 

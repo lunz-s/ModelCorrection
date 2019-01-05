@@ -37,9 +37,18 @@ class TwoNets(model_correction):
         ### The forward network ###
 
         # placeholders
-        self.approximate_y = tf.placeholder(shape=[None, self.measurement_size[0], self.measurement_size[1],1],
-                                            dtype=tf.float32)
-        self.true_y = tf.placeholder(shape=[None, self.measurement_size[0], self.measurement_size[1],1], dtype=tf.float32)
+        self.input_image = tf.placeholder(shape=[None, self.image_size[0], self.image_size[1], 1], dtype=tf.float32)
+
+        # the data Term is used to compute the direction for the gradient regularization
+        self.data_term = tf.placeholder(shape=[None, self.measurement_size[0], self.measurement_size[1], 1], dtype=tf.float32)
+
+        # methode to get the initial guess in tf
+        self.x_ini = multiply(self.data_term, tf.transpose(self.m_true))
+
+        # Compute the corresponding measurements with the true and approximate operators
+        self.true_y = multiply(self.input_image, self.m_true)
+        self.approximate_y = multiply(self.input_image, self.m_appr)
+
         self.learning_rate = tf.placeholder(dtype=tf.float32)
 
         # the network output
@@ -57,6 +66,7 @@ class TwoNets(model_correction):
 
             # Direction the adjoint correction is calculated in
             self.direction = self.UNet.net(self.true_y) - self.true_y
+            direction = tf.stop_gradient(self.direction)
 
         # some tensorboard logging
         tf.summary.image('TrueData', self.true_y, max_outputs=1)
@@ -65,8 +75,8 @@ class TwoNets(model_correction):
         tf.summary.scalar('Loss_L2', self.l2)
 
         # placeholders
-        self.approximate_x = multiply(self.direction, tf.transpose(self.m_appr))
-        self.true_x = multiply(self.direction, tf.transpose(self.m_true))
+        self.approximate_x = multiply(direction, tf.transpose(self.m_appr))
+        self.true_x = multiply(direction, tf.transpose(self.m_true))
 
         with tf.variable_scope('Adjoint_Correction'):
             self.correct_adj = self.UNet.net(self.approximate_x)
@@ -95,40 +105,33 @@ class TwoNets(model_correction):
         self.load()
 
     def evaluate(self, x):
-        y, change = self.feedable_format(x)
-        result = self.sess.run(self.output, feed_dict={self.approximate_y: y})
-        if change:
-            result = result[0,...]
-        return result
+        pass
 
     def differentiate(self, point, direction):
-        location, change = self.feedable_format(point)
-        direction, _ = self.feedable_format(direction)
-        result = self.sess.run(self.correct_adj, feed_dict={self.approximate_x: location,
-                                                            self.direction: direction})
-        if change:
-            result = result[0,...,0]
-        return result
+        pass
 
     def train_forward(self, learning_rate):
         appr, true, image = self.data_sets.train.next_batch(self.batch_size)
-        self.sess.run(self.optimizer, feed_dict={self.approximate_y: appr, self.true_y: true,
+        x = self.sess.run(self.x_ini, feed_dict={self.data_term: true})
+
+        self.sess.run(self.optimizer, feed_dict={self.input_image: x, self.data_term: true,
                                                  self.learning_rate: learning_rate})
 
     def train_adjoint(self, learning_rate):
         appr, true, image = self.data_sets.train.next_batch(self.batch_size)
-        self.sess.run(self.optimizer_adjoint, feed_dict={self.approximate_y: appr, self.true_y: true,
-                                                 self.learning_rate: learning_rate})
+        x = self.sess.run(self.x_ini, feed_dict={self.data_term: true})
 
-    def train(self, learning_rate):
-        appr, true, image = self.data_sets.train.next_batch(self.batch_size)
-        self.sess.run(self.optimizer, feed_dict={self.approximate_y: appr, self.true_y: true,
-                                                 self.learning_rate: learning_rate})
-        self.sess.run(self.optimizer_adjoint, feed_dict={self.approximate_y: appr, self.true_y: true,
-                                                 self.learning_rate: learning_rate})
+        self.sess.run(self.optimizer_adjoint, feed_dict={self.input_image: x, self.data_term: true,
+                                                         self.learning_rate: learning_rate})
 
-    def log(self):
+    def train(self, recursion, steps_size, learning_rate):
+        self.train_forward(learning_rate)
+        self.train_adjoint(learning_rate=learning_rate)
+
+    def log(self, recursions, steps_size):
         appr, true, image = self.data_sets.test.next_batch(self.batch_size)
+        x = self.sess.run(self.x_ini, feed_dict={self.data_term: true})
+
         iteration, summary = self.sess.run([self.global_step, self.merged],
-                      feed_dict={self.approximate_y: appr, self.true_y: true})
+                    feed_dict={self.input_image: x, self.data_term: true})
         self.writer.add_summary(summary, iteration)
