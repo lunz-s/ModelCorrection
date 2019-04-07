@@ -16,6 +16,9 @@ matrix_path = prefix+'Data/Matrices/threshSingleMatrix4Py.mat'
 data_path = prefix+'Data/balls64/'
 saves_path = prefix+'Saves/balls64/'
 
+print(saves_path)
+print(data_path)
+
 train_append = 'trainDataSet.mat'
 test_append = 'testDataSet.mat'
 data_sets = PATdata.read_data_sets(data_path + train_append, data_path + test_append)

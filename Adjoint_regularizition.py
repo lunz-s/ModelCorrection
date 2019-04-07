@@ -13,7 +13,7 @@ class Regularized(model_correction):
     def get_network(self, channels):
         return UNet(channels_out=channels)
 
-    # the loss functionals - can be overwritten in subclasses
+    # the loss functionals
     def loss_fct(self, output, true_meas):
         loss = tf.sqrt(tf.reduce_sum(tf.square(output - true_meas), axis=(1, 2, 3)))
         l2 = tf.reduce_mean(loss)
