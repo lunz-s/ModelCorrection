@@ -3,6 +3,9 @@ from Framework import model_correction
 from Operators.networks import UNet
 import random
 
+def l2(tensor):
+    return tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(tensor), axis=(1, 2, 3))))
+
 
 class Regularized(model_correction):
     linear = False
@@ -12,13 +15,6 @@ class Regularized(model_correction):
     # the computational model
     def get_network(self, channels):
         return UNet(channels_out=channels)
-
-    # the loss functionals
-    def loss_fct(self, output, true_meas):
-        loss = tf.sqrt(tf.reduce_sum(tf.square(output - true_meas), axis=(1, 2, 3)))
-        l2 = tf.reduce_mean(loss)
-        tf.summary.scalar('Loss_L2', l2)
-        return l2
 
     def __init__(self, path, true_np, appr_np, data_sets):
         super(Regularized, self).__init__(path, data_sets)
@@ -37,7 +33,6 @@ class Regularized(model_correction):
             result = tf.tensordot(reshaped, matrix, axes=[[1], [0]])
             return tf.reshape(result, [-1, shape[1], shape[2], 1])
 
-
         # placeholders
         # The location x in image space
         self.input_image = tf.placeholder(shape=[None, self.image_size[0], self.image_size[1], 1], dtype=tf.float32)
@@ -52,33 +47,33 @@ class Regularized(model_correction):
         self.true_y = multiply(self.input_image, self.m_true)
         self.approximate_y = multiply(self.input_image, self.m_appr)
 
-        # Learning parameters
         self.learning_rate = tf.placeholder(dtype=tf.float32)
-
-        # the network output
         self.output = self.UNet.net(self.approximate_y)
 
-        # l2 loss functional
-        loss = tf.sqrt(tf.reduce_sum(tf.square(self.output - self.true_y), axis=(1, 2, 3)))
-        self.l2 = tf.reduce_mean(loss)
+        # The loss caused by forward misfit
+        self.l2 = l2(self.output - self.true_y)
 
         # compute the direction to evaluate the adjoint in
         self.direction = self.output-self.data_term
-
-        # Stop gradients from flowing back to the forward fit - adjoint fit shall not act as norm regularization
-        # on forward fit
         direction = tf.stop_gradient(self.direction)
 
-        # adjoint computation
+        # direction = self.true_y-self.data_term
+
+        # The loss caused by adjoint misfit
         scalar_prod = tf.reduce_sum(tf.multiply(self.output, direction))
         self.gradients = tf.gradients(scalar_prod, self.approximate_y)[0]
         self.apr_x = multiply(self.gradients, tf.transpose(self.m_appr))
         self.true_x = multiply(direction, tf.transpose(self.m_true))
-        self.loss_adj = tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(self.apr_x - self.true_x), axis=(1, 2))))
+        self.loss_adj = l2(self.apr_x - self.true_x)
+
+        # Overall misfit: Computes the overall l2 misfit between the gradients of the data terms
+        self.approx_grad = self.apr_x
+        self.true_grad = multiply(self.true_y-self.data_term, tf.transpose(self.m_true))
 
         # empiric value to ensure both losses are of the same order
         weighting_factor = 1
         self.total_loss = weighting_factor*self.loss_adj + self.l2
+        self.gradient_loss = l2(self.true_grad - self.approx_grad)
 
         # Optimizer
         self.global_step = tf.Variable(0, name='global_step', trainable=False)
@@ -86,9 +81,13 @@ class Regularized(model_correction):
                                                                              global_step=self.global_step)
 
         with tf.name_scope('Training'):
-            tf.summary.scalar('Loss_L2', self.l2)
+            tf.summary.scalar('Loss_Forward', self.l2)
             tf.summary.scalar('Loss_Adjoint', self.loss_adj)
             tf.summary.scalar('TotalLoss', self.total_loss)
+            tf.summary.scalar('GradientLoss', self.gradient_loss)
+            tf.summary.scalar('Norm_TrueAdjoint', l2(self.true_x))
+            tf.summary.scalar('Relative_Loss_Forward', self.l2/l2(self.true_y))
+            tf.summary.scalar('Relative_Loss_Adjoint', self.loss_adj/l2(self.true_x))
 
         # some tensorboard logging
         with tf.name_scope('Forward'):
@@ -98,26 +97,29 @@ class Regularized(model_correction):
         with tf.name_scope('Adjoint'):
             tf.summary.image('TrueAdjoint', self.true_x, max_outputs=1)
             tf.summary.image('NetworkAdjoint', self.apr_x, max_outputs=1)
+            tf.summary.image('TrueAdjoint_trueDirection', self.true_grad, max_outputs=1)
 
         self.merged = tf.summary.merge_all()
         self.writer = tf.summary.FileWriter(self.path + 'Logs/')
 
         # tracking for while solving the gradient descent over the data term
         with tf.name_scope('DataGradDescent'):
+            l = []
             self.ground_truth = tf.placeholder(shape=[None, self.image_size[0], self.image_size[1], 1], dtype=tf.float32)
-            adj = tf.summary.scalar('LossAdjoint', self.loss_adj)
-            forward = tf.summary.scalar('LossForward', self.l2)
+            l.append(tf.summary.scalar('Loss_Adjoint', self.loss_adj))
+            l.append(tf.summary.scalar('Loss_Forward', self.l2))
+            l.append(tf.summary.scalar('Loss_Gradient', self.gradient_loss))
             self.quality = tf.nn.l2_loss(self.input_image - self.ground_truth)
-            quality = tf.summary.scalar('Quality', self.quality)
-            data_term = tf.summary.scalar('DataTerm', tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(
-                self.direction), axis=(1,2,3)))))
-            self.merged_opt = tf.summary.merge([data_term, adj, forward, quality])
-            tf.summary.image('TrueData', self.true_y, max_outputs=1)
-            tf.summary.image('NetworkData', self.output, max_outputs=1)
-            tf.summary.image('TrueAdjoint', self.true_x, max_outputs=1)
-            tf.summary.image('NetworkAdjoint', self.apr_x, max_outputs=1)
-            tf.summary.image('GroundTruth', self.ground_truth, max_outputs=1)
-            tf.summary.image('Reconstruction', self.input_image, max_outputs=1)
+            l.append(tf.summary.scalar('Quality', self.quality))
+            l.append(tf.summary.scalar('DataTerm_Approx', l2(direction)))
+            l.append(tf.summary.scalar('DataTerm_True', l2(self.true_y-self.data_term)))
+            l.append(tf.summary.image('True_Data', self.true_y, max_outputs=1))
+            l.append(tf.summary.image('Network_Data', self.output, max_outputs=1))
+            l.append(tf.summary.image('True_Gradient', self.true_x, max_outputs=1))
+            l.append(tf.summary.image('Network_Gradient', self.apr_x, max_outputs=1))
+            l.append(tf.summary.image('GroundTruth', self.ground_truth, max_outputs=1))
+            l.append(tf.summary.image('Reconstruction', self.input_image, max_outputs=1))
+            self.merged_opt = tf.summary.merge(l)
 
 
 
@@ -169,6 +171,19 @@ class Regularized(model_correction):
         writer = tf.summary.FileWriter(self.path + 'Logs/Iteration_' + str(step)+'/')
         for k in range(recursions):
             summary, update = self.sess.run([self.merged_opt, self.apr_x],
+                               feed_dict={self.input_image: x, self.data_term: true,
+                                          self.ground_truth: image})
+            writer.add_summary(summary, k)
+            x = x-2*step_size*update
+        writer.flush()
+        writer.close()
+
+    def log_gt_optimization(self, recursions, step_size):
+        appr, true, image = self.data_sets.test.next_batch(self.batch_size)
+        step, x = self.sess.run([self.global_step, self.x_ini], feed_dict={self.data_term: true})
+        writer = tf.summary.FileWriter(self.path + 'Logs/GroundTruth')
+        for k in range(recursions):
+            summary, update = self.sess.run([self.merged_opt, self.true_grad],
                                feed_dict={self.input_image: x, self.data_term: true,
                                           self.ground_truth: image})
             writer.add_summary(summary, k)
