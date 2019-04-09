@@ -28,10 +28,19 @@ class Regularized(model_correction):
         self.m_appr = tf.constant(self.appr_op.m, dtype=tf.float32)
 
         def multiply(tensor, matrix):
+            tensor_flipped = tf.reverse(tensor, axis=[1])
+            shape = tf.shape(tensor)
+            reshaped = tf.reshape(tensor_flipped, [-1, shape[1]*shape[2], 1])
+            result = tf.tensordot(reshaped, matrix, axes=[[1], [1]])
+            return tf.reshape(result, [-1, shape[1], shape[2], 1])
+
+        def multiply_adjoint(tensor, matrix):
             shape = tf.shape(tensor)
             reshaped = tf.reshape(tensor, [-1, shape[1]*shape[2], 1])
-            result = tf.tensordot(reshaped, matrix, axes=[[1], [0]])
-            return tf.reshape(result, [-1, shape[1], shape[2], 1])
+            prod = tf.tensordot(reshaped, tf.transpose(matrix), axes=[[1], [1]])
+            flipped = tf.reverse(tf.reshape(prod, [-1, shape[1], shape[2], 1]), axis=[1])
+            return flipped
+
 
         # placeholders
         # The location x in image space
@@ -41,7 +50,7 @@ class Regularized(model_correction):
         self.data_term = tf.placeholder(shape=[None, self.measurement_size[0], self.measurement_size[1], 1], dtype=tf.float32)
 
         # methode to get the initial guess in tf
-        self.x_ini = multiply(self.data_term, tf.transpose(self.m_true))
+        self.x_ini = multiply_adjoint(self.data_term, self.m_true)
 
         # Compute the corresponding measurements with the true and approximate operators
         self.true_y = multiply(self.input_image, self.m_true)
@@ -62,13 +71,13 @@ class Regularized(model_correction):
         # The loss caused by adjoint misfit
         scalar_prod = tf.reduce_sum(tf.multiply(self.output, direction))
         self.gradients = tf.gradients(scalar_prod, self.approximate_y)[0]
-        self.apr_x = multiply(self.gradients, tf.transpose(self.m_appr))
-        self.true_x = multiply(direction, tf.transpose(self.m_true))
+        self.apr_x = multiply_adjoint(self.gradients, self.m_appr)
+        self.true_x = multiply_adjoint(direction, self.m_true)
         self.loss_adj = l2(self.apr_x - self.true_x)
 
         # Overall misfit: Computes the overall l2 misfit between the gradients of the data terms
         self.approx_grad = self.apr_x
-        self.true_grad = multiply(self.true_y-self.data_term, tf.transpose(self.m_true))
+        self.true_grad = multiply_adjoint(self.true_y-self.data_term, self.m_true)
 
         # empiric value to ensure both losses are of the same order
         weighting_factor = 1
@@ -109,7 +118,7 @@ class Regularized(model_correction):
             l.append(tf.summary.scalar('Loss_Adjoint', self.loss_adj))
             l.append(tf.summary.scalar('Loss_Forward', self.l2))
             l.append(tf.summary.scalar('Loss_Gradient', self.gradient_loss))
-            self.quality = tf.nn.l2_loss(self.input_image - self.ground_truth)
+            self.quality = l2(self.input_image - self.ground_truth)
             l.append(tf.summary.scalar('Quality', self.quality))
             l.append(tf.summary.scalar('DataTerm_Approx', l2(direction)))
             l.append(tf.summary.scalar('DataTerm_True', l2(self.true_y-self.data_term)))
