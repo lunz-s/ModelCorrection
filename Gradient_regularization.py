@@ -10,7 +10,7 @@ def l2(tensor):
 class Regularized(model_correction):
     linear = False
     batch_size = 16
-    experiment_name = 'AdjointRegularization'
+    experiment_name = 'GradientRegularization'
 
     # the computational model
     def get_network(self, channels):
@@ -59,8 +59,15 @@ class Regularized(model_correction):
         self.learning_rate = tf.placeholder(dtype=tf.float32)
         self.output = self.UNet.net(self.approximate_y)
 
+        ### Compute the misfits
+        self.data_term_true = l2(self.true_y - self.data_term)
+        self.data_term_approx = l2(self.output- self.data_term)
+
+        self.grad_true = tf.gradients(self.data_term_true, self.input_image)[0]
+        self.grad_approx = tf.gradients(self.data_term_approx, self.input_image)[0]
+
         # The loss caused by forward misfit
-        self.l2 = l2(self.output - self.true_y)
+        self.total_loss = l2(self.grad_true - self.grad_approx)
 
         # compute the direction to evaluate the adjoint in
         self.direction = self.output-self.data_term
@@ -75,14 +82,8 @@ class Regularized(model_correction):
         self.true_x = multiply_adjoint(direction, self.m_true)
         self.loss_adj = l2(self.apr_x - self.true_x)
 
-        # Overall misfit: Computes the overall l2 misfit between the gradients of the data terms
-        self.approx_grad = self.apr_x
-        self.true_grad = multiply_adjoint(self.true_y-self.data_term, self.m_true)
-
-        # empiric value to ensure both losses are of the same order
-        weighting_factor = 1
-        self.total_loss = weighting_factor*self.loss_adj + self.l2
-        self.gradient_loss = l2(self.true_grad - self.approx_grad)
+        # chain rule check
+        self.check_l2 = l2(self.grad_approx - self.apr_x)
 
         # Optimizer
         self.global_step = tf.Variable(0, name='global_step', trainable=False)
@@ -90,12 +91,10 @@ class Regularized(model_correction):
                                                                              global_step=self.global_step)
 
         with tf.name_scope('Training'):
-            tf.summary.scalar('Loss_Forward', self.l2)
             tf.summary.scalar('Loss_Adjoint', self.loss_adj)
             tf.summary.scalar('TotalLoss', self.total_loss)
-            tf.summary.scalar('GradientLoss', self.gradient_loss)
+            tf.summary.scalar('ShouldBeZero', self.check_l2)
             tf.summary.scalar('Norm_TrueAdjoint', l2(self.true_x))
-            tf.summary.scalar('Relative_Loss_Forward', self.l2/l2(self.true_y))
             tf.summary.scalar('Relative_Loss_Adjoint', self.loss_adj/l2(self.true_x))
 
         # some tensorboard logging
@@ -109,7 +108,6 @@ class Regularized(model_correction):
         with tf.name_scope('Adjoint'):
             tf.summary.image('TrueAdjoint', self.true_x, max_outputs=1)
             tf.summary.image('NetworkAdjoint', self.apr_x, max_outputs=1)
-            tf.summary.image('TrueAdjoint_trueDirection', self.true_grad, max_outputs=1)
 
         self.merged = tf.summary.merge_all()
         self.writer = tf.summary.FileWriter(self.path + 'Logs/')
@@ -120,11 +118,8 @@ class Regularized(model_correction):
             self.ground_truth = tf.placeholder(shape=[None, self.image_size[0], self.image_size[1], 1], dtype=tf.float32)
             l.append(tf.summary.scalar('Loss_Adjoint', self.loss_adj))
             tf.summary.scalar('Relative_Loss_Adjoint', self.loss_adj/l2(self.true_x))
-            l.append(tf.summary.scalar('Loss_Forward', self.l2))
-            l.append(tf.summary.scalar('Loss_Gradient', self.gradient_loss))
             self.quality = l2(self.input_image - self.ground_truth)
             l.append(tf.summary.scalar('Quality', self.quality))
-            l.append(tf.summary.scalar('DataTerm_Approx', l2(direction)))
             l.append(tf.summary.scalar('DataTerm_True', l2(self.true_y-self.data_term)))
             l.append(tf.summary.image('True_Data', self.true_y, max_outputs=1))
             l.append(tf.summary.image('Network_Data', self.output, max_outputs=1))
@@ -191,15 +186,3 @@ class Regularized(model_correction):
         writer.flush()
         writer.close()
 
-    def log_gt_optimization(self, recursions, step_size):
-        appr, true, image = self.data_sets.test.next_batch(self.batch_size)
-        step, x = self.sess.run([self.global_step, self.x_ini], feed_dict={self.data_term: true})
-        writer = tf.summary.FileWriter(self.path + 'Logs/GroundTruth')
-        for k in range(recursions):
-            summary, update = self.sess.run([self.merged_opt, self.true_grad],
-                               feed_dict={self.input_image: x, self.data_term: true,
-                                          self.ground_truth: image})
-            writer.add_summary(summary, k)
-            x = x-2*step_size*update
-        writer.flush()
-        writer.close()
