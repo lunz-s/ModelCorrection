@@ -75,7 +75,7 @@ class TwoNets(model_correction):
                                                                                  global_step=self.global_step)
 
             # Direction the adjoint correction is calculated in
-            self.direction = self.output - self.true_y
+            self.direction = self.output - self.data_term
             direction = tf.stop_gradient(self.direction)
 
             # some tensorboard logging
@@ -106,12 +106,24 @@ class TwoNets(model_correction):
         self.merged = tf.summary.merge_all()
         self.writer = tf.summary.FileWriter(self.path + 'Logs/', self.sess.graph)
 
-        self.ground_truth = tf.placeholder(shape=[None, self.image_size[0], self.image_size[1], 1], dtype=tf.float32)
-        self.quality = l2(self.input_image - self.ground_truth)
-        tf.summary.scalar('Quality', self.quality)
-        tf.summary.scalar('DataTermTrueOP', l2(self.true_y - self.data_term))
-        tf.summary.scalar('DataTermCorrectedOP', l2(self.output - self.data_term))
-        self.merged_gd = tf.summary.merge_all()
+        # tracking for while solving the gradient descent over the data term
+        with tf.name_scope('DataGradDescent'):
+            l = []
+            self.ground_truth = tf.placeholder(shape=[None, self.image_size[0], self.image_size[1], 1], dtype=tf.float32)
+            l.append(tf.summary.scalar('Loss_Adjoint', self.l2_adj))
+            tf.summary.scalar('Relative_Loss_Adjoint', self.l2_adj/l2(self.true_x))
+            l.append(tf.summary.scalar('Loss_Forward', self.l2))
+            self.quality = l2(self.input_image - self.ground_truth)
+            l.append(tf.summary.scalar('Quality', self.quality))
+            l.append(tf.summary.scalar('DataTerm_Approx', l2(direction)))
+            l.append(tf.summary.scalar('DataTerm_True', l2(self.true_y-self.data_term)))
+            l.append(tf.summary.image('True_Data', self.true_y, max_outputs=1))
+            l.append(tf.summary.image('Network_Data', self.output, max_outputs=1))
+            l.append(tf.summary.image('True_Gradient', self.true_x, max_outputs=1))
+            l.append(tf.summary.image('Network_Gradient', self.correct_adj, max_outputs=1))
+            l.append(tf.summary.image('GroundTruth', self.ground_truth, max_outputs=1))
+            l.append(tf.summary.image('Reconstruction', self.input_image, max_outputs=1))
+            self.merged_opt = tf.summary.merge(l)
 
         # initialize variables
         tf.global_variables_initializer().run()
