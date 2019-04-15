@@ -33,7 +33,7 @@ exact = ExactPAT(matrix_path=matrix_path, input_dim=input_dim, output_dim=output
 correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, data_sets=data_sets)
 
 rate = 5e-5
-recursions = 1
+recursions = 50
 step_size = 0.1
 iterations = 5
 
@@ -44,7 +44,7 @@ for i in range(iterations):
             correction.log(recursions, step_size)
     # recursions = recursions+1
     correction.save()
-correction.log_optimization(recursions=40, step_size=step_size)
+correction.log_optimization(recursions=100, step_size=step_size)
 
 # for i in range(iterations):
 #     for k in range(1000):
