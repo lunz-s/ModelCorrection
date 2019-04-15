@@ -109,8 +109,8 @@ class TwoNets(model_correction):
         self.ground_truth = tf.placeholder(shape=[None, self.image_size[0], self.image_size[1], 1], dtype=tf.float32)
         self.quality = l2(self.input_image - self.ground_truth)
         tf.summary.scalar('Quality', self.quality)
-        tf.summary.scalar('DataTermTrueOP', self.l2(self.true_y - self.data_term))
-        tf.summary.scalar('DataTermCorrectedOP', self.l2(self.output - self.data_term))
+        tf.summary.scalar('DataTermTrueOP', l2(self.true_y - self.data_term))
+        tf.summary.scalar('DataTermCorrectedOP', l2(self.output - self.data_term))
         self.merged_gd = tf.summary.merge_all()
 
         # initialize variables
