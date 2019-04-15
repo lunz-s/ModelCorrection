@@ -60,10 +60,10 @@ class Regularized(model_correction):
         self.output = self.UNet.net(self.approximate_y)
 
         ### Compute the misfits
-        bs = tf.shape(self.input_image)[0]
+        bs = tf.cast(tf.shape(self.input_image)[0], tf.float32)
 
-        self.data_term_true = bs*2*l2(self.true_y - self.data_term)
-        self.data_term_approx = bs*2*l2(self.output - self.data_term)
+        self.data_term_true = 2.0*bs*l2(self.true_y - self.data_term)
+        self.data_term_approx = 2.0*bs*l2(self.output - self.data_term)
 
         self.grad_true = tf.gradients(self.data_term_true, self.input_image)[0]
         self.grad_approx = tf.gradients(self.data_term_approx, self.input_image)[0]
