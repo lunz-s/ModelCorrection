@@ -37,13 +37,16 @@ recursions = 50
 step_size = 0.1
 iterations = 5
 
-for i in range(iterations):
-    for k in range(1000):
-        correction.train(recursions, step_size, learning_rate=rate)
-        if k % 50 == 0:
-            correction.log(recursions, step_size)
-    # recursions = recursions+1
+if 0:
+
+    for i in range(iterations):
+        for k in range(1000):
+            correction.train(recursions, step_size, learning_rate=rate)
+            if k % 50 == 0:
+                correction.log(recursions, step_size)
+        # recursions = recursions+1
     correction.save()
+
 correction.log_optimization(recursions=100, step_size=step_size)
 
 # for i in range(iterations):
