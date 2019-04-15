@@ -37,7 +37,7 @@ iterations = 5
 
 if 1:
     for i in range(iterations):
-        for k in range(100):
+        for k in range(1000):
             correction.train(recursions, step_size, learning_rate=rate)
             if k % 50 == 0:
                 correction.log(recursions, step_size)
