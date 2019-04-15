@@ -84,8 +84,8 @@ class TwoNets(model_correction):
             tf.summary.image('NetworkData', self.output, max_outputs=1)
             tf.summary.scalar('Loss_L2', self.l2)
 
-        self.approximate_x = multiply(direction, tf.transpose(self.m_appr))
-        self.true_x = multiply(direction, tf.transpose(self.m_true))
+        self.approximate_x = multiply_adjoint(direction, self.m_appr)
+        self.true_x = multiply_adjoint(direction, self.m_true)
 
         with tf.variable_scope('Adjoint_Correction'):
             self.correct_adj = self.UNet.net(self.approximate_x)
