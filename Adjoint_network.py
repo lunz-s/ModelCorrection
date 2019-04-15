@@ -18,8 +18,7 @@ class TwoNets(model_correction):
         return UNet(channels_out=channels)
 
     def __init__(self, path, data_sets, true_np, appr_np, experiment_name='TwoNetworks'):
-        super(TwoNets, self).__init__(path, data_sets)
-        self.experiment_name = experiment_name
+        super(TwoNets, self).__init__(path, data_sets, experiment_name=experiment_name)
         # overwrite the input dimension, as the operator already includes the approximation
         self.input_dim = self.image_size
 

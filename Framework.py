@@ -224,7 +224,6 @@ class exact_PAT_operator(np_operator):
 class model_correction(np_operator):
     linear = False
     # categorizes experiments
-    experiment_name = 'default_experiment'
 
     # makes sure the folders needed for saving the model and logging data are in place
     def generate_folders(self, path):
@@ -276,7 +275,8 @@ class model_correction(np_operator):
             raise ValueError
         return array, changed
 
-    def __init__(self, path, data_sets):
+    def __init__(self, path, data_sets, experiment_name = 'default_experiment'):
+        self.experiment_name = experiment_name
         self.image_size = data_sets.train.image_resolution
         self.measurement_size = data_sets.train.y_resolution
         super(model_correction, self).__init__(self.measurement_size, self.measurement_size)
