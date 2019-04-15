@@ -76,7 +76,7 @@ class Regularized(model_correction):
         self.loss_adj = l2(self.apr_x - self.true_x)
 
         # Overall misfit: Computes the overall l2 misfit between the gradients of the data terms
-        self.approx_grad = self.apr_x
+        self.approx_grad = multiply_adjoint(self.approximate_y-self.data_term, self.m_appr)
         self.true_grad = multiply_adjoint(self.true_y-self.data_term, self.m_true)
 
         # empiric value to ensure both losses are of the same order
@@ -204,5 +204,18 @@ class Regularized(model_correction):
                                           self.ground_truth: image})
             writer.add_summary(summary, k)
             x = x-2*step_size*update
+        writer.flush()
+        writer.close()
+
+    def log_approx_optimization(self, recursions, step_size):
+        appr, true, image = self.data_sets.test.next_batch(self.batch_size)
+        step, x = self.sess.run([self.global_step, self.x_ini], feed_dict={self.data_term: true})
+        writer = tf.summary.FileWriter(self.path + 'Logs/ApproxUncorrected')
+        for k in range(recursions):
+            summary, update = self.sess.run([self.merged_opt, self.approx_grad],
+                                            feed_dict={self.input_image: x, self.data_term: true,
+                                                       self.ground_truth: image})
+            writer.add_summary(summary, k)
+            x = x - 2 * step_size * update
         writer.flush()
         writer.close()
