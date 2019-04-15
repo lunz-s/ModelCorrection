@@ -104,7 +104,7 @@ class TwoNets(model_correction):
             tf.summary.scalar('Loss_Adjoint', self.l2_adj)
 
         self.merged = tf.summary.merge_all()
-        self.writer = tf.summary.FileWriter(self.path + 'Logs/', self.sess.graph)
+        self.writer = tf.summary.FileWriter(self.path + 'Logs/')
 
         # tracking for while solving the gradient descent over the data term
         with tf.name_scope('DataGradDescent'):
@@ -160,7 +160,7 @@ class TwoNets(model_correction):
         step, x = self.sess.run([self.global_step, self.x_ini], feed_dict={self.data_term: true})
         writer = tf.summary.FileWriter(self.path + 'Logs/Iteration_' + str(step)+'/')
         for k in range(recursions):
-            summary, update = self.sess.run([self.merged_gd, self.correct_adj],
+            summary, update = self.sess.run([self.merged_opt, self.correct_adj],
                                feed_dict={self.input_image: x, self.data_term: true,
                                           self.ground_truth: image})
             writer.add_summary(summary, k)
