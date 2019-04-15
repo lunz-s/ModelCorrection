@@ -13,13 +13,13 @@ def l2(tensor):
 class TwoNets(model_correction):
     linear = False
     batch_size = 16
-    experiment_name = 'TwoNetworks'
 
     def get_network(self, channels):
         return UNet(channels_out=channels)
 
-    def __init__(self, path, data_sets, true_np, appr_np):
+    def __init__(self, path, data_sets, true_np, appr_np, experiment_name='TwoNetworks'):
         super(TwoNets, self).__init__(path, data_sets)
+        self.experiment_name = experiment_name
         # overwrite the input dimension, as the operator already includes the approximation
         self.input_dim = self.image_size
 
@@ -144,11 +144,17 @@ class TwoNets(model_correction):
         appr, true, image = self.data_sets.train.next_batch(self.batch_size)
         x = self.sess.run(self.x_ini, feed_dict={self.data_term: true})
 
-        self.sess.run(self.optimizer, feed_dict={self.input_image: x, self.data_term: true,
-                                                 self.learning_rate: learning_rate})
+        for k in range(recursion):
+            self.sess.run(self.optimizer, feed_dict={self.input_image: x, self.data_term: true,
+                                                     self.learning_rate: learning_rate})
 
-        self.sess.run(self.optimizer_adjoint, feed_dict={self.input_image: x, self.data_term: true,
-                                                         self.learning_rate: learning_rate})
+            self.sess.run(self.optimizer_adjoint, feed_dict={self.input_image: x, self.data_term: true,
+                                                             self.learning_rate: learning_rate})
+
+            update = self.sess.run(self.correct_adj,
+                                   feed_dict={self.input_image: x, self.data_term: true,
+                                              self.ground_truth: image})
+            x = x - 2 * steps_size * update
 
     def log(self, recursions, steps_size):
         appr, true, image = self.data_sets.test.next_batch(self.batch_size)
