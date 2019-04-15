@@ -60,6 +60,9 @@ class TwoNets(model_correction):
         self.true_y = multiply(self.input_image, self.m_true)
         self.approximate_y = multiply(self.input_image, self.m_appr)
 
+        self.approx_grad = multiply_adjoint(self.approximate_y-self.data_term, self.m_appr)
+        self.true_grad = multiply_adjoint(self.true_y-self.data_term, self.m_true)
+
         self.learning_rate = tf.placeholder(dtype=tf.float32)
 
         # the network output
@@ -165,5 +168,31 @@ class TwoNets(model_correction):
                                           self.ground_truth: image})
             writer.add_summary(summary, k)
             x = x-2*step_size*update
+        writer.flush()
+        writer.close()
+
+    def log_gt_optimization(self, recursions, step_size):
+        appr, true, image = self.data_sets.test.next_batch(self.batch_size)
+        step, x = self.sess.run([self.global_step, self.x_ini], feed_dict={self.data_term: true})
+        writer = tf.summary.FileWriter(self.path + 'Logs/GroundTruth')
+        for k in range(recursions):
+            summary, update = self.sess.run([self.merged_opt, self.true_grad],
+                                            feed_dict={self.input_image: x, self.data_term: true,
+                                                       self.ground_truth: image})
+            writer.add_summary(summary, k)
+            x = x - 2 * step_size * update
+        writer.flush()
+        writer.close()
+
+    def log_approx_optimization(self, recursions, step_size):
+        appr, true, image = self.data_sets.test.next_batch(self.batch_size)
+        step, x = self.sess.run([self.global_step, self.x_ini], feed_dict={self.data_term: true})
+        writer = tf.summary.FileWriter(self.path + 'Logs/ApproxUncorrected')
+        for k in range(recursions):
+            summary, update = self.sess.run([self.merged_opt, self.approx_grad],
+                                            feed_dict={self.input_image: x, self.data_term: true,
+                                                       self.ground_truth: image})
+            writer.add_summary(summary, k)
+            x = x - 2 * step_size * update
         writer.flush()
         writer.close()
