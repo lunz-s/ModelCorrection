@@ -160,7 +160,8 @@ class Regularized(model_correction):
 
     def train(self, recursions, step_size, learning_rate):
         appr, true, image = self.data_sets.train.next_batch(self.batch_size)
-        x = self.sess.run(self.x_ini, feed_dict={self.data_term: true})
+        # x = self.sess.run(self.x_ini, feed_dict={self.data_term: true})
+        x = image
 
         # for k in range(recursions):
         self.sess.run(self.optimizer, feed_dict={self.input_image: x, self.data_term: true,
@@ -171,7 +172,9 @@ class Regularized(model_correction):
 
     def log(self, recursions, step_size):
         appr, true, image = self.data_sets.test.next_batch(self.batch_size)
-        x = self.sess.run(self.x_ini, feed_dict={self.data_term: true})
+        # x = self.sess.run(self.x_ini, feed_dict={self.data_term: true})
+        x=image
+
         # for k in range(recursions):
         #     update = self.sess.run(self.apr_x, feed_dict={self.input_image: x, self.data_term: true})
         #     x = x-2*step_size*update
