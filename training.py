@@ -29,76 +29,32 @@ output_dim = data_sets.train.y_resolution
 approx = ApproxPAT(matrix_path=matrix_path, input_dim=input_dim, output_dim=output_dim)
 exact = ExactPAT(matrix_path=matrix_path, input_dim=input_dim, output_dim=output_dim)
 
-n = sys.argv[1]
 
-if n == '-1':
-    correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, data_sets=data_sets)
-    correction.log_optimization(recursions=40, step_size=0.05)
+correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, data_sets=data_sets)
 
-if n == '1' or n == '0':
-    correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, data_sets=data_sets)
+rate = 5e-5
+recursions = 1
+step_size = 0.1
+iterations = 5
 
-    rate = 5e-5
-    recursions = 1
-    step_size = 0.1
-    iterations = 5
+for i in range(iterations):
+    for k in range(1000):
+        correction.train(recursions, step_size, learning_rate=rate)
+        if k % 50 == 0:
+            correction.log(recursions, step_size)
+    # recursions = recursions+1
+    correction.save()
+correction.log_optimization(recursions=40, step_size=step_size)
 
-    for i in range(iterations):
-        for k in range(1000):
-            correction.train(recursions, step_size, learning_rate=rate)
-            if k % 50 == 0:
-                correction.log(recursions, step_size)
-        # recursions = recursions+1
-        correction.save()
-    correction.log_optimization(recursions=40, step_size=step_size)
+# for i in range(iterations):
+#     for k in range(1000):
+#         correction.train(recursions, step_size, rate/10.0)
+#         if k % 50 == 0:
+#             correction.log(recursions, step_size)
+#     correction.save()
+# correction.log_optimization(recursions=10, step_size=step_size)
 
-    # for i in range(iterations):
-    #     for k in range(1000):
-    #         correction.train(recursions, step_size, rate/10.0)
-    #         if k % 50 == 0:
-    #             correction.log(recursions, step_size)
-    #     correction.save()
-    # correction.log_optimization(recursions=10, step_size=step_size)
+correction.end()
 
-    correction.end()
 
-if n == '2' or n == '0':
-    correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, data_sets=data_sets)
-
-    rate = 5e-5
-    for i in range(10):
-        for k in range(2000):
-            correction.train(rate)
-            if k % 100 == 0:
-                correction.log()
-        correction.save()
-
-    for i in range(10):
-        for k in range(2000):
-            correction.train(rate/10.0)
-            if k % 100 == 0:
-                correction.log()
-        correction.save()
-
-    correction.end()
-
-if n == '3' or n == '0':
-    correction = Unregularized(path=saves_path, true_np=exact, appr_np=approx, data_sets=data_sets)
-
-    rate = 5e-5
-    for i in range(10):
-        for k in range(2000):
-            correction.train(rate)
-            if k % 100 == 0:
-                correction.log()
-        correction.save()
-
-    for i in range(10):
-        for k in range(2000):
-            correction.train(rate/10.0)
-            if k % 100 == 0:
-                correction.log()
-        correction.save()
-
-    correction.end()
 
