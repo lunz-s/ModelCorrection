@@ -60,8 +60,10 @@ class Regularized(model_correction):
         self.output = self.UNet.net(self.approximate_y)
 
         ### Compute the misfits
-        self.data_term_true = l2(self.true_y - self.data_term)
-        self.data_term_approx = l2(self.output- self.data_term)
+        bs = tf.shape(self.input_image)[0]
+
+        self.data_term_true = bs*2*l2(self.true_y - self.data_term)
+        self.data_term_approx = bs*2*l2(self.output - self.data_term)
 
         self.grad_true = tf.gradients(self.data_term_true, self.input_image)[0]
         self.grad_approx = tf.gradients(self.data_term_approx, self.input_image)[0]
@@ -91,9 +93,10 @@ class Regularized(model_correction):
                                                                              global_step=self.global_step)
 
         with tf.name_scope('Training'):
-            tf.summary.scalar('Loss_Adjoint', self.loss_adj)
             tf.summary.scalar('TotalLoss', self.total_loss)
+            tf.summary.scalar('RelativeTotalLoss', self.total_loss/l2(self.grad_true))
             tf.summary.scalar('ShouldBeZero', self.check_l2)
+            tf.summary.scalar('Loss_Adjoint', self.loss_adj)
             tf.summary.scalar('Norm_TrueAdjoint', l2(self.true_x))
             tf.summary.scalar('Relative_Loss_Adjoint', self.loss_adj/l2(self.true_x))
 
@@ -108,6 +111,9 @@ class Regularized(model_correction):
         with tf.name_scope('Adjoint'):
             tf.summary.image('TrueAdjoint', self.true_x, max_outputs=1)
             tf.summary.image('NetworkAdjoint', self.apr_x, max_outputs=1)
+        with tf.name_scope('DirectGradientLoss'):
+            tf.summary.image('GradientTrueData', self.grad_true, max_outputs=1)
+            tf.summary.image('GradientApproxData', self.grad_approx, max_outputs=1)
 
         self.merged = tf.summary.merge_all()
         self.writer = tf.summary.FileWriter(self.path + 'Logs/')
@@ -166,7 +172,7 @@ class Regularized(model_correction):
     def log(self, recursions, step_size):
         appr, true, image = self.data_sets.test.next_batch(self.batch_size)
         x = self.sess.run(self.x_ini, feed_dict={self.data_term: true})
-        for k in range(random.randint(1, recursions)):
+        for k in range(recursions):
             update = self.sess.run(self.apr_x, feed_dict={self.input_image: x, self.data_term: true})
             x = x-2*step_size*update
         iteration, summary = self.sess.run([self.global_step, self.merged],
