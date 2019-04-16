@@ -28,22 +28,24 @@ exact = ExactPAT(matrix_path=matrix_path, input_dim=input_dim, output_dim=output
 
 
 correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx,
-                     data_sets=data_sets, experiment_name='TwoNetsRekursive')
+                     data_sets=data_sets, experiment_name='TwoNetsGraduallyIncreasedRekursion')
 
 rate = 5e-4
-recursions = 100
+recursions_max = 100
 step_size = 0.1
-iterations = 5
+iterations = 10
 
-if 0:
+if 1:
     for i in range(iterations):
+        recursions = int((recursions_max * i / (iterations-1)) + 1)
+        print(recursions)
         for k in range(100):
             correction.train(recursions, step_size, learning_rate=rate)
-            if k % 50 == 0:
+            if k % 20 == 0:
                 correction.log(recursions, step_size)
         # recursions = recursions+1
         correction.save()
-# correction.log_optimization(recursions=100, step_size=step_size)
+correction.log_optimization(recursions=100, step_size=step_size)
 correction.log_gt_optimization(recursions=100, step_size=step_size)
 correction.log_approx_optimization(recursions=100, step_size=step_size)
 
