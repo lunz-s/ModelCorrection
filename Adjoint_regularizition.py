@@ -59,6 +59,7 @@ class Regularized(model_correction):
         self.approximate_y = multiply(self.input_image, self.m_appr)
 
         self.learning_rate = tf.placeholder(dtype=tf.float32)
+        print(self.approximate_y.shape)
         self.output = self.UNet.net(self.approximate_y)
 
         # The loss caused by forward misfit
