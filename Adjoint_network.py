@@ -32,13 +32,13 @@ class TwoNets(model_correction):
 
         def multiply(tensor, matrix):
             tensor_flipped = tf.reverse(tensor, axis=[1])
-            shape = tf.shape(tensor)
+            shape = tensor.shape
             reshaped = tf.reshape(tensor_flipped, [-1, shape[1]*shape[2], 1])
             result = tf.tensordot(reshaped, matrix, axes=[[1], [1]])
             return tf.reshape(result, [-1, shape[1], shape[2], 1])
 
         def multiply_adjoint(tensor, matrix):
-            shape = tf.shape(tensor)
+            shape = tensor.shape
             reshaped = tf.reshape(tensor, [-1, shape[1]*shape[2], 1])
             prod = tf.tensordot(reshaped, tf.transpose(matrix), axes=[[1], [1]])
             flipped = tf.reverse(tf.reshape(prod, [-1, shape[1], shape[2], 1]), axis=[1])
