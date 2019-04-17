@@ -31,16 +31,16 @@ exact = ExactPAT(matrix_path=matrix_path, input_dim=input_dim, output_dim=output
 class LinearModel(Regularized):
 
     # Use forward loss only
-    weighting_factor = 0
+    weighting_factor = 1
 
     def get_network(self, channels):
         return Linear(channels_out=channels)
 
 
 correction = LinearModel(path=saves_path, true_np=exact, appr_np=approx,
-                         data_sets=data_sets, experiment_name='LinearModel')
+                         data_sets=data_sets, experiment_name='LinearModelAdjointRegularized')
 
-rate = 5e-5
+rate = 5e-4
 recursions = 1
 step_size = 0.1
 iterations = 5
@@ -53,6 +53,8 @@ for i in range(iterations):
     # recursions = recursions+1
     correction.save()
 correction.log_optimization(recursions=100, step_size=step_size)
+correction.log_gt_optimization(recursions=100, step_size=step_size)
+correction.log_approx_optimization(recursions=100, step_size=step_size)
 
 # for i in range(iterations):
 #     for k in range(1000):
