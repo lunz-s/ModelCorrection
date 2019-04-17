@@ -73,7 +73,7 @@ class Linear(object):
     def net(self, inp):
         shape = tf.shape(inp)
         flat = tf.layers.flatten(inp)
-        res = tf.layers.dense(input=flat, units=shape[1]*shape[2]*self.channels,
+        res = tf.layers.dense(inputs=flat, units=shape[1]*shape[2]*self.channels,
                               use_bias=False, reuse=tf.AUTO_REUSE, name='dense')
         return tf.reshape(res, shape=[-1, shape[1], shape[2], self.channels])
 
