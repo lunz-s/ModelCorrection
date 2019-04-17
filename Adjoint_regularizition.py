@@ -10,14 +10,16 @@ def l2(tensor):
 class Regularized(model_correction):
     linear = False
     batch_size = 16
-    experiment_name = 'AdjointRegularization'
+
+    ### Weighting factor of 0 corresponds to Forward loss only
+    weighting_factor = 1
 
     # the computational model
     def get_network(self, channels):
         return UNet(channels_out=channels)
 
-    def __init__(self, path, true_np, appr_np, data_sets):
-        super(Regularized, self).__init__(path, data_sets)
+    def __init__(self, path, true_np, appr_np, data_sets, experiment_name='AdjointRegularization'):
+        super(Regularized, self).__init__(path, data_sets, experiment_name=experiment_name)
 
         # Setting up the operators
         self.true_op = true_np
@@ -80,8 +82,7 @@ class Regularized(model_correction):
         self.true_grad = multiply_adjoint(self.true_y-self.data_term, self.m_true)
 
         # empiric value to ensure both losses are of the same order
-        weighting_factor = 1
-        self.total_loss = weighting_factor*self.loss_adj + self.l2
+        self.total_loss = self.weighting_factor*self.loss_adj + self.l2
         self.gradient_loss = l2(self.true_grad - self.approx_grad)
 
         # Optimizer

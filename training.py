@@ -1,11 +1,8 @@
 from Adjoint_regularizition import Regularized
-from Adjoint_network import TwoNets
-from No_regularization import Unregularized
 import Operators.Load_PAT2D_data as PATdata
 import platform
 from Framework import approx_PAT_matrix as ApproxPAT
 from Framework import exact_PAT_operator as ExactPAT
-import sys
 
 if platform.node() == 'motel':
     prefix = '/local/scratch/public/sl767/ModelCorrection/'
@@ -37,7 +34,7 @@ recursions = 50
 step_size = 0.1
 iterations = 5
 
-if 0:
+if 1:
 
     for i in range(iterations):
         for k in range(1000):

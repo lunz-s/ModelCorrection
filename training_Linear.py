@@ -1,8 +1,9 @@
-from Gradient_regularization import Regularized
+from Adjoint_network import Regularized
 import Operators.Load_PAT2D_data as PATdata
 import platform
 from Framework import approx_PAT_matrix as ApproxPAT
 from Framework import exact_PAT_operator as ExactPAT
+from Operators.networks import Linear
 
 if platform.node() == 'motel':
     prefix = '/local/scratch/public/sl767/ModelCorrection/'
@@ -27,7 +28,17 @@ approx = ApproxPAT(matrix_path=matrix_path, input_dim=input_dim, output_dim=outp
 exact = ExactPAT(matrix_path=matrix_path, input_dim=input_dim, output_dim=output_dim)
 
 
-correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, data_sets=data_sets)
+class LinearModel(Regularized):
+
+    # Use forward loss only
+    weighting_factor = 0
+
+    def get_network(self, channels):
+        return Linear(channels_out=channels)
+
+
+correction = LinearModel(path=saves_path, true_np=exact, appr_np=approx,
+                         data_sets=data_sets, experiment_name='LinearModel')
 
 rate = 5e-5
 recursions = 1
@@ -41,7 +52,7 @@ for i in range(iterations):
             correction.log(recursions, step_size)
     # recursions = recursions+1
     correction.save()
-correction.log_optimization(recursions=40, step_size=step_size)
+correction.log_optimization(recursions=100, step_size=step_size)
 
 # for i in range(iterations):
 #     for k in range(1000):
