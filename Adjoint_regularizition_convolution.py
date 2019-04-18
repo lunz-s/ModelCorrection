@@ -30,9 +30,8 @@ class Regularized(model_correction):
         self.m_appr = tf.constant(self.appr_op.m, dtype=tf.float32)
 
         def multiply(tensor, matrix):
-            tensor_flipped = tf.reverse(tensor, axis=[1])
             shape = tensor.shape
-            reshaped = tf.reshape(tensor_flipped, [-1, shape[1]*shape[2], 1])
+            reshaped = tf.reshape(tensor, [-1, shape[1]*shape[2], 1])
             result = tf.tensordot(reshaped, matrix, axes=[[1], [1]])
             return tf.reshape(result, [-1, shape[1], shape[2], 1])
 
@@ -40,9 +39,7 @@ class Regularized(model_correction):
             shape = tensor.shape
             reshaped = tf.reshape(tensor, [-1, shape[1]*shape[2], 1])
             prod = tf.tensordot(reshaped, tf.transpose(matrix), axes=[[1], [1]])
-            flipped = tf.reverse(tf.reshape(prod, [-1, shape[1], shape[2], 1]), axis=[1])
-            return flipped
-
+            return tf.reshape(prod, [-1, shape[1], shape[2], 1])
 
         # placeholders
         # The location x in image space
