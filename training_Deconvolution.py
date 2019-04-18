@@ -10,7 +10,7 @@ if platform.node() == 'motel':
 else:
     prefix = ''
 
-matrix_path = prefix+'Data/Matrices/convMats.mat'
+matrix_path = prefix+'Data/Matrices/iden.mat'
 data_path = prefix+'Data/balls64/'
 saves_path = prefix+'Saves/balls64/'
 
@@ -38,7 +38,7 @@ class LinearModel(Regularized):
 
 
 correction = LinearModel(path=saves_path, true_np=exact, appr_np=approx,
-                         data_sets=data_sets, experiment_name='Deconvolution')
+                         data_sets=data_sets, experiment_name='Identity')
 
 rate = 5e-4
 recursions = 1
