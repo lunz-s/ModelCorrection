@@ -176,9 +176,9 @@ class Regularized(model_correction):
         y = self.sess.run(self.true_y, feed_dict={self.input_image: image})
         x = np.copy(y)
 
-        for k in range(1):
-            update = self.sess.run(self.apr_x, feed_dict={self.input_image: x, self.data_term: y})
-            x = x-2*step_size*update
+        # for k in range(0):
+        #     update = self.sess.run(self.apr_x, feed_dict={self.input_image: x, self.data_term: y})
+        #     x = x-2*step_size*update
         iteration, summary = self.sess.run([self.global_step, self.merged],
                                            feed_dict={self.input_image: x, self.data_term: y})
         self.writer.add_summary(summary, iteration)

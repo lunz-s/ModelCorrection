@@ -1,4 +1,4 @@
-from Adjoint_regularizition import Regularized
+from Adjoint_regularizition_convolution import Regularized
 import Operators.Load_PAT2D_data as PATdata
 import platform
 from Framework import approx_PAT_matrix as ApproxPAT
