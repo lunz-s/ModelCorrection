@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 from Framework import model_correction
 from Operators.networks import UNet
 
@@ -159,36 +160,38 @@ class Regularized(model_correction):
         return result
 
     def train(self, recursions, step_size, learning_rate):
-        appr, true, image = self.data_sets.train.next_batch(self.batch_size)
-        x = self.sess.run(self.x_ini, feed_dict={self.data_term: true})
-        # x = image
+        _, _, image = self.data_sets.train.next_batch(self.batch_size)
+        y = self.sess.run(self.true_y, feed_dict={self.input_image: image})
+        x = np.copy(y)
 
         for k in range(recursions):
-            self.sess.run(self.optimizer, feed_dict={self.input_image: x, self.data_term: true,
+            self.sess.run(self.optimizer, feed_dict={self.input_image: x, self.data_term: y,
                                                      self.learning_rate: learning_rate})
-            update = self.sess.run(self.apr_x, feed_dict={self.input_image: x, self.data_term: true,
+            update = self.sess.run(self.apr_x, feed_dict={self.input_image: x, self.data_term: y,
                                                      self.learning_rate: learning_rate})
             x = x-2*step_size*update
 
     def log(self, recursions, step_size):
-        appr, true, image = self.data_sets.test.next_batch(self.batch_size)
-        x = self.sess.run(self.x_ini, feed_dict={self.data_term: true})
-        # x = image
+        _, _, image = self.data_sets.train.next_batch(self.batch_size)
+        y = self.sess.run(self.true_y, feed_dict={self.input_image: image})
+        x = np.copy(y)
 
         for k in range(1):
-            update = self.sess.run(self.apr_x, feed_dict={self.input_image: x, self.data_term: true})
+            update = self.sess.run(self.apr_x, feed_dict={self.input_image: x, self.data_term: y})
             x = x-2*step_size*update
         iteration, summary = self.sess.run([self.global_step, self.merged],
-                                           feed_dict={self.input_image: x, self.data_term: true})
+                                           feed_dict={self.input_image: x, self.data_term: y})
         self.writer.add_summary(summary, iteration)
 
     def log_optimization(self, recursions, step_size):
-        appr, true, image = self.data_sets.test.next_batch(self.batch_size)
-        step, x = self.sess.run([self.global_step, self.x_ini], feed_dict={self.data_term: true})
+        _, _, image = self.data_sets.train.next_batch(self.batch_size)
+        y = self.sess.run(self.true_y, feed_dict={self.input_image: image})
+        x = np.copy(y)
+        step = self.sess.run([self.global_step])
         writer = tf.summary.FileWriter(self.path + 'Logs/Iteration_' + str(step)+'/')
         for k in range(recursions):
             summary, update = self.sess.run([self.merged_opt, self.apr_x],
-                               feed_dict={self.input_image: x, self.data_term: true,
+                               feed_dict={self.input_image: x, self.data_term: y,
                                           self.ground_truth: image})
             writer.add_summary(summary, k)
             x = x-2*step_size*update
@@ -196,12 +199,13 @@ class Regularized(model_correction):
         writer.close()
 
     def log_gt_optimization(self, recursions, step_size):
-        appr, true, image = self.data_sets.test.next_batch(self.batch_size)
-        step, x = self.sess.run([self.global_step, self.x_ini], feed_dict={self.data_term: true})
-        writer = tf.summary.FileWriter(self.path + 'Logs/GroundTruth')
+        _, _, image = self.data_sets.train.next_batch(self.batch_size)
+        y = self.sess.run(self.true_y, feed_dict={self.input_image: image})
+        x = np.copy(y)
+        writer = tf.summary.FileWriter(self.path + 'Logs/GroundTruth/')
         for k in range(recursions):
             summary, update = self.sess.run([self.merged_opt, self.true_grad],
-                               feed_dict={self.input_image: x, self.data_term: true,
+                               feed_dict={self.input_image: x, self.data_term: y,
                                           self.ground_truth: image})
             writer.add_summary(summary, k)
             x = x-2*step_size*update
@@ -209,14 +213,15 @@ class Regularized(model_correction):
         writer.close()
 
     def log_approx_optimization(self, recursions, step_size):
-        appr, true, image = self.data_sets.test.next_batch(self.batch_size)
-        step, x = self.sess.run([self.global_step, self.x_ini], feed_dict={self.data_term: true})
-        writer = tf.summary.FileWriter(self.path + 'Logs/ApproxUncorrected')
+        _, _, image = self.data_sets.train.next_batch(self.batch_size)
+        y = self.sess.run(self.true_y, feed_dict={self.input_image: image})
+        x = np.copy(y)
+        writer = tf.summary.FileWriter(self.path + 'Logs/ApproximateOp/')
         for k in range(recursions):
             summary, update = self.sess.run([self.merged_opt, self.approx_grad],
-                                            feed_dict={self.input_image: x, self.data_term: true,
-                                                       self.ground_truth: image})
+                               feed_dict={self.input_image: x, self.data_term: y,
+                                          self.ground_truth: image})
             writer.add_summary(summary, k)
-            x = x - 2 * step_size * update
+            x = x-2*step_size*update
         writer.flush()
         writer.close()
