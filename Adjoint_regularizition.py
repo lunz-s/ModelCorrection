@@ -1,6 +1,7 @@
 import tensorflow as tf
 from Framework import model_correction
 from Operators.networks import UNet
+import numpy as np
 
 def l2(tensor):
     return tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(tensor), axis=(1, 2, 3))))
@@ -51,7 +52,7 @@ class Regularized(model_correction):
         self.data_term = tf.placeholder(shape=[None, self.measurement_size[0], self.measurement_size[1], 1], dtype=tf.float32)
 
         # methode to get the initial guess in tf
-        self.x_ini = multiply_adjoint(self.data_term, self.m_true)
+        self.x_ini = multiply_adjoint(self.data_term, self.m_appr)
 
         # Compute the corresponding measurements with the true and approximate operators
         self.true_y = multiply(self.input_image, self.m_true)
@@ -90,6 +91,11 @@ class Regularized(model_correction):
         self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.total_loss,
                                                                              global_step=self.global_step)
 
+        # L1 regularization term
+        TV = tf.image.total_variation(self.input_image)
+        self.average_TV = tf.reduce_sum(TV)
+        self.TV_grad = tf.gradients(tf.reduce_sum(TV), self.input_image)[0]
+
         with tf.name_scope('Training'):
             tf.summary.scalar('Loss_Forward', self.l2)
             tf.summary.scalar('Loss_Adjoint', self.loss_adj)
@@ -127,6 +133,7 @@ class Regularized(model_correction):
             l.append(tf.summary.scalar('Quality', self.quality))
             l.append(tf.summary.scalar('DataTerm_Approx', l2(direction)))
             l.append(tf.summary.scalar('DataTerm_True', l2(self.true_y-self.data_term)))
+            l.append(tf.summary.scalar('TV_regularization', self.average_TV))
             l.append(tf.summary.image('True_Data', self.true_y, max_outputs=1))
             l.append(tf.summary.image('Network_Data', self.output, max_outputs=1))
             l.append(tf.summary.image('True_Gradient', self.true_x, max_outputs=1))
@@ -142,6 +149,14 @@ class Regularized(model_correction):
 
         # load in existing model
         self.load()
+
+    def update(self, image, data_gradient, TV_gradient, lam, step_size, positivity=True):
+        grad = data_gradient + lam * TV_gradient
+        res = image - 2*step_size*grad
+        if positivity:
+            return np.maximum(0, res)
+        else:
+            return res
 
     def evaluate(self, y):
         y, change = self.feedable_format(y)
@@ -182,41 +197,41 @@ class Regularized(model_correction):
                                            feed_dict={self.input_image: x, self.data_term: true})
         self.writer.add_summary(summary, iteration)
 
-    def log_optimization(self, recursions, step_size):
+    def log_optimization(self, recursions, step_size, lam, positivity = True):
         appr, true, image = self.data_sets.test.next_batch(self.batch_size)
         step, x = self.sess.run([self.global_step, self.x_ini], feed_dict={self.data_term: true})
-        writer = tf.summary.FileWriter(self.path + 'Logs/Iteration_' + str(step)+'/')
+        writer = tf.summary.FileWriter(self.path + 'Logs/Iteration_{}/Lambda_{}'.format(step, lam))
         for k in range(recursions):
-            summary, update = self.sess.run([self.merged_opt, self.apr_x],
+            summary, data_grad, TV_grad = self.sess.run([self.merged_opt, self.apr_x, self.TV_grad],
                                feed_dict={self.input_image: x, self.data_term: true,
                                           self.ground_truth: image})
             writer.add_summary(summary, k)
-            x = x-2*step_size*update
+            x = self.update(x, data_grad, TV_grad, lam=lam, step_size=step_size, positivity=positivity)
         writer.flush()
         writer.close()
 
-    def log_gt_optimization(self, recursions, step_size):
+    def log_gt_optimization(self, recursions, step_size, lam, positivity=True):
         appr, true, image = self.data_sets.test.next_batch(self.batch_size)
         step, x = self.sess.run([self.global_step, self.x_ini], feed_dict={self.data_term: true})
-        writer = tf.summary.FileWriter(self.path + 'Logs/GroundTruth')
+        writer = tf.summary.FileWriter(self.path + 'Logs/GroundTruth/Lambda_{}'.format(lam))
         for k in range(recursions):
-            summary, update = self.sess.run([self.merged_opt, self.true_grad],
+            summary, data_grad, TV_grad = self.sess.run([self.merged_opt, self.true_grad, self.TV_grad],
                                feed_dict={self.input_image: x, self.data_term: true,
                                           self.ground_truth: image})
             writer.add_summary(summary, k)
-            x = x-2*step_size*update
+            x = self.update(x, data_grad, TV_grad, lam=lam, step_size=step_size, positivity=positivity)
         writer.flush()
         writer.close()
 
-    def log_approx_optimization(self, recursions, step_size):
+    def log_approx_optimization(self, recursions, step_size, lam, positivity=True):
         appr, true, image = self.data_sets.test.next_batch(self.batch_size)
         step, x = self.sess.run([self.global_step, self.x_ini], feed_dict={self.data_term: true})
-        writer = tf.summary.FileWriter(self.path + 'Logs/ApproxUncorrected')
+        writer = tf.summary.FileWriter(self.path + 'Logs/ApproxUncorrected/Lambda_{}'.format(lam))
         for k in range(recursions):
-            summary, update = self.sess.run([self.merged_opt, self.approx_grad],
-                                            feed_dict={self.input_image: x, self.data_term: true,
-                                                       self.ground_truth: image})
+            summary, data_grad, TV_grad = self.sess.run([self.merged_opt, self.approx_grad, self.TV_grad],
+                               feed_dict={self.input_image: x, self.data_term: true,
+                                          self.ground_truth: image})
             writer.add_summary(summary, k)
-            x = x - 2 * step_size * update
+            x = self.update(x, data_grad, TV_grad, lam=lam, step_size=step_size, positivity=positivity)
         writer.flush()
         writer.close()
