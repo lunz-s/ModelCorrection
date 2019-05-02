@@ -45,9 +45,9 @@ if 1:
                 correction.log(recursions, step_size)
         # recursions = recursions+1
         correction.save()
-correction.log_optimization(recursions=100, step_size=step_size)
-correction.log_gt_optimization(recursions=100, step_size=step_size)
-correction.log_approx_optimization(recursions=100, step_size=step_size)
+correction.log_optimization(recursions=100, step_size=step_size, lam=0)
+correction.log_gt_optimization(recursions=100, step_size=step_size, lam=0)
+correction.log_approx_optimization(recursions=100, step_size=step_size, lam=0)
 
 
 # for i in range(iterations):

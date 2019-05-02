@@ -46,7 +46,7 @@ if 1:
 
 # correction.log_optimization(recursions=100, step_size=step_size)
 # correction.log_gt_optimization(recursions=100, step_size=step_size)
-correction.log_approx_optimization(recursions=100, step_size=step_size)
+correction.log_approx_optimization(recursions=100, step_size=step_size, lam=0.0)
 
 # for i in range(iterations):
 #     for k in range(1000):
