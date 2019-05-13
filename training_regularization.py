@@ -27,14 +27,17 @@ approx = ApproxPAT(matrix_path=matrix_path, input_dim=input_dim, output_dim=outp
 exact = ExactPAT(matrix_path=matrix_path, input_dim=input_dim, output_dim=output_dim)
 
 
-correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, data_sets=data_sets)
+lam = 0.001
 
-rate = 5e-5
-recursions = 50
-step_size = 0.1
-iterations = 5
 
 if 1:
+    correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=lam, data_sets=data_sets,
+                             experiment_name='RegularizedAdjoint')
+
+    rate = 5e-5
+    recursions = 1
+    step_size = 0.0
+    iterations = 5
 
     for i in range(iterations):
         for k in range(1000):
@@ -44,17 +47,34 @@ if 1:
         # recursions = recursions+1
     correction.save()
 
-# correction.log_optimization(recursions=100, step_size=step_size)
-# correction.log_gt_optimization(recursions=100, step_size=step_size)
+if 0:
+    correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=lam, data_sets=data_sets,
+                             experiment_name='RegularizedAdjointRekursive')
+    rate = 5e-4
+    recursions_max = 100
+    step_size = 0.1
+    iterations = 10
+
+    if 1:
+        for i in range(iterations):
+            recursions = int((recursions_max * i / (iterations - 1)) + 1)
+            print(recursions)
+            for k in range(300):
+                correction.train(recursions, step_size, learning_rate=rate)
+                if k % 20 == 0:
+                    correction.log(recursions, step_size)
+            # recursions = recursions+1
+            correction.save()
+
+
+correction.log_optimization(recursions=100, step_size=step_size, lam=0.0)
+correction.log_gt_optimization(recursions=100, step_size=step_size, lam=0.0)
 correction.log_approx_optimization(recursions=100, step_size=step_size, lam=0.0)
 
-# for i in range(iterations):
-#     for k in range(1000):
-#         correction.train(recursions, step_size, rate/10.0)
-#         if k % 50 == 0:
-#             correction.log(recursions, step_size)
-#     correction.save()
-# correction.log_optimization(recursions=10, step_size=step_size)
+correction.log_optimization(recursions=100, step_size=step_size, lam=lam)
+correction.log_gt_optimization(recursions=100, step_size=step_size, lam=lam)
+correction.log_approx_optimization(recursions=100, step_size=step_size, lam=lam)
+
 
 correction.end()
 

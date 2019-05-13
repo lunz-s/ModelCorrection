@@ -10,14 +10,14 @@ else:
     prefix = ''
 
 matrix_path = prefix+'Data/Matrices/threshSingleMatrix4Py.mat'
-data_path = prefix+'Data/balls64/'
-saves_path = prefix+'Saves/balls64/'
+data_path = prefix+'Data/vessels/'
+saves_path = prefix+'Saves/vessels/'
 
 print(saves_path)
 print(data_path)
 
-train_append = 'trainDataSet.mat'
-test_append = 'testDataSet.mat'
+train_append = 'vesselBatch2D_train.mat'
+test_append = 'vesselBatch2D_test.mat'
 data_sets = PATdata.read_data_sets(data_path + train_append, data_path + test_append)
 
 input_dim = data_sets.train.image_resolution

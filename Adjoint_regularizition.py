@@ -18,8 +18,10 @@ class Regularized(model_correction):
     def get_network(self, channels):
         return UNet(channels_out=channels)
 
-    def __init__(self, path, true_np, appr_np, data_sets, experiment_name='AdjointRegularization'):
+    def __init__(self, path, true_np, appr_np, data_sets, lam=0.001, experiment_name='AdjointRegularization'):
         super(Regularized, self).__init__(path, data_sets, experiment_name=experiment_name)
+
+        self.lam = lam
 
         # Setting up the operators
         self.true_op = true_np
@@ -119,7 +121,7 @@ class Regularized(model_correction):
             tf.summary.image('TrueAdjoint_trueDirection', self.true_grad, max_outputs=1)
 
         self.merged = tf.summary.merge_all()
-        self.writer = tf.summary.FileWriter(self.path + 'Logs/')
+        self.writer = tf.summary.FileWriter(self.path + str(self.lam)+'/Logs/')
 
         # tracking for while solving the gradient descent over the data term
         with tf.name_scope('DataGradDescent'):
@@ -173,7 +175,9 @@ class Regularized(model_correction):
             result = result[0, ...]
         return result
 
-    def train(self, recursions, step_size, learning_rate):
+    def train(self, recursions, step_size, learning_rate, lam=None):
+        if lam is None:
+            lam=self.lam
         appr, true, image = self.data_sets.train.next_batch(self.batch_size)
         x = self.sess.run(self.x_ini, feed_dict={self.data_term: true})
         # x = image
@@ -181,9 +185,10 @@ class Regularized(model_correction):
         for k in range(recursions):
             self.sess.run(self.optimizer, feed_dict={self.input_image: x, self.data_term: true,
                                                      self.learning_rate: learning_rate})
-            update = self.sess.run(self.apr_x, feed_dict={self.input_image: x, self.data_term: true,
+            update, tv_grad = self.sess.run([self.apr_x, self.TV_grad], feed_dict={self.input_image: x, self.data_term: true,
                                                      self.learning_rate: learning_rate})
-            x = x-2*step_size*update
+
+            x = self.update(x, update, TV_gradient=tv_grad, lam=lam, step_size=step_size, positivity=True)
 
     def log(self, recursions, step_size):
         appr, true, image = self.data_sets.test.next_batch(self.batch_size)

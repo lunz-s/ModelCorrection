@@ -18,10 +18,11 @@ class TwoNets(model_correction):
     def get_network(self, channels):
         return UNet(channels_out=channels)
 
-    def __init__(self, path, data_sets, true_np, appr_np, experiment_name='TwoNetworks'):
+    def __init__(self, path, data_sets, true_np, appr_np, experiment_name='TwoNetworks', lam=0.001):
         super(TwoNets, self).__init__(path, data_sets, experiment_name=experiment_name)
         # overwrite the input dimension, as the operator already includes the approximation
         self.input_dim = self.image_size
+        self.lam = lam
 
         # Setting up the operators
         self.true_op = true_np
@@ -112,7 +113,7 @@ class TwoNets(model_correction):
         self.TV_grad = tf.gradients(tf.reduce_sum(TV), self.input_image)[0]
 
         self.merged = tf.summary.merge_all()
-        self.writer = tf.summary.FileWriter(self.path + 'Logs/')
+        self.writer = tf.summary.FileWriter(self.path + str(self.lam)+'/Logs/')
 
         # tracking for while solving the gradient descent over the data term
         with tf.name_scope('DataGradDescent'):
@@ -126,6 +127,8 @@ class TwoNets(model_correction):
             l.append(tf.summary.scalar('DataTerm_Approx', l2(direction)))
             l.append(tf.summary.scalar('DataTerm_True', l2(self.true_y-self.data_term)))
             l.append(tf.summary.scalar('TV_regularization', self.average_TV))
+            prod = tf.reduce_mean(tf.reduce_sum(tf.multiply(self.correct_adj, self.true_grad), axis=(1,2,3)))
+            l.append(tf.summary.scalar('Angle', prod/(l2(self.correct_adj)*l2(self.true_grad))))
             l.append(tf.summary.image('True_Data', self.true_y, max_outputs=1))
             l.append(tf.summary.image('Network_Data', self.output, max_outputs=1))
             l.append(tf.summary.image('True_Gradient', self.true_x, max_outputs=1))
@@ -155,7 +158,10 @@ class TwoNets(model_correction):
     def differentiate(self, point, direction):
         pass
 
-    def train(self, recursion, steps_size, learning_rate):
+    def train(self, recursion, steps_size, learning_rate, lam=None):
+        if lam is None:
+            lam = self.lam
+
         appr, true, image = self.data_sets.train.next_batch(self.batch_size)
         x = self.sess.run(self.x_ini, feed_dict={self.data_term: true})
 
@@ -166,10 +172,10 @@ class TwoNets(model_correction):
             self.sess.run(self.optimizer_adjoint, feed_dict={self.input_image: x, self.data_term: true,
                                                              self.learning_rate: learning_rate})
 
-            update = self.sess.run(self.correct_adj,
+            update, tv_grad = self.sess.run([self.correct_adj, self.TV_grad],
                                    feed_dict={self.input_image: x, self.data_term: true,
                                               self.ground_truth: image})
-            x = x - 2 * steps_size * update
+            x = self.update(x, update, TV_gradient=tv_grad, lam=lam, step_size=steps_size, positivity=True)
 
     def log(self, recursions, steps_size):
         appr, true, image = self.data_sets.test.next_batch(self.batch_size)

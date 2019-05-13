@@ -1,4 +1,4 @@
-from Adjoint_network import TwoNets
+from Adjoint_regularizition import Regularized
 import Operators.Load_PAT2D_data as PATdata
 import platform
 from Framework import approx_PAT_matrix as ApproxPAT
@@ -10,14 +10,14 @@ else:
     prefix = ''
 
 matrix_path = prefix+'Data/Matrices/threshSingleMatrix4Py.mat'
-data_path = prefix+'Data/balls64/'
-saves_path = prefix+'Saves/balls64/'
+data_path = prefix+'Data/vessels/'
+saves_path = prefix+'Saves/vessels/'
 
 print(saves_path)
 print(data_path)
 
-train_append = 'trainDataSet.mat'
-test_append = 'testDataSet.mat'
+train_append = 'vesselBatch2D_train.mat'
+test_append = 'vesselBatch2D_test.mat'
 data_sets = PATdata.read_data_sets(data_path + train_append, data_path + test_append)
 
 input_dim = data_sets.train.image_resolution
@@ -31,8 +31,8 @@ lam = 0.001
 
 
 if 1:
-    correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, lam=lam, data_sets=data_sets,
-                             experiment_name='TwoNets')
+    correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=lam, data_sets=data_sets,
+                             experiment_name='RegularizedAdjoint')
 
     rate = 5e-5
     recursions = 1
@@ -48,8 +48,8 @@ if 1:
     correction.save()
 
 if 0:
-    correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, lam=lam, data_sets=data_sets,
-                             experiment_name='TwoNetsRekursive')
+    correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=lam, data_sets=data_sets,
+                             experiment_name='RegularizedAdjointRekursive')
     rate = 5e-4
     recursions_max = 100
     step_size = 0.1
@@ -77,3 +77,6 @@ correction.log_approx_optimization(recursions=100, step_size=step_size, lam=lam)
 
 
 correction.end()
+
+
+
