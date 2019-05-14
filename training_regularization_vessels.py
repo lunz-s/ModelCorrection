@@ -31,21 +31,21 @@ lam = 0.001
 step_size = 0.1
 
 
-if 0:
+if 1:
     correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=lam, data_sets=data_sets,
                              experiment_name='RegularizedAdjoint')
 
-    rate = 5e-5
-    recursions = 1
-    iterations = 2
-
-    for i in range(iterations):
-        for k in range(1000):
-            correction.train(recursions, step_size, learning_rate=rate)
-            if k % 50 == 0:
-                correction.log(recursions, step_size)
-        # recursions = recursions+1
-    correction.save()
+    # rate = 5e-5
+    # recursions = 1
+    # iterations = 2
+    #
+    # for i in range(iterations):
+    #     for k in range(1000):
+    #         correction.train(recursions, step_size, learning_rate=rate)
+    #         if k % 50 == 0:
+    #             correction.log(recursions, step_size)
+    #     # recursions = recursions+1
+    # correction.save()
 
 if 0:
     correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=lam, data_sets=data_sets,
