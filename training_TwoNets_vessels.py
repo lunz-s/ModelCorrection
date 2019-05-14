@@ -18,7 +18,7 @@ print(data_path)
 
 train_append = 'vesselBatch2D_train.mat'
 test_append = 'vesselBatch2D_test.mat'
-data_sets = PATdata.read_data_sets(data_path + train_append, data_path + test_append)
+data_sets = PATdata.read_data_sets(data_path + train_append, data_path + test_append, vessels=True)
 
 input_dim = data_sets.train.image_resolution
 output_dim = data_sets.train.y_resolution

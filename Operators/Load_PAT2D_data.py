@@ -22,39 +22,23 @@ def extract_images(filename, imageName):
 
 class DataSet(object):
 
-  def __init__(self, dataApr,dataTru,imagTru):
+  def __init__(self, images):
     """Construct a DataSet"""
 
-    self._num_examples = dataApr.shape[0]
+    self._num_examples = images.shape[0]
 
-
-    self._dataApr = dataApr
-    self._dataTru = dataTru
-    self._imagTru = imagTru
+    self._images = images
     self._epochs_completed = 0
     self._index_in_epoch = 0
 
   @property
   def image_resolution(self):
-    shape = self._imagTru.shape
+    shape = self._images.shape
     return (shape[1], shape[2])
-
-  @property
-  def y_resolution(self):
-    shape = self._dataTru.shape
-    return (shape[1], shape[2])
-
-  @property
-  def dataApr(self):
-    return self._dataApr
-
-  @property
-  def dataTru(self):
-    return self._dataTru
   
   @property
   def imagTru(self):
-    return self._imagTru
+    return self._images
 
   @property
   def num_examples(self):
@@ -74,39 +58,35 @@ class DataSet(object):
       # Shuffle the data
       perm = np.arange(self._num_examples)
       np.random.shuffle(perm)
-      self._dataApr = self._dataApr[perm]
-      self._dataTru = self._dataTru[perm]
-      self._imagTru = self._imagTru[perm]
+
+      self._images= self._images[perm]
       # Start next epoch
       start = 0
       self._index_in_epoch = batch_size
       assert batch_size <= self._num_examples
     end = self._index_in_epoch
-    return np.expand_dims(self._dataApr[start:end], axis=-1), np.expand_dims(self._dataTru[start:end], axis=-1), \
-           np.expand_dims(self._imagTru[start:end], axis=-1)
+    return np.expand_dims(self._images[start:end], axis=-1)
 
 
-def read_data_sets(trainFileName, testFileName):
+def read_data_sets(trainFileName, testFileName, vessels=False):
   class DataSets(object):
-    pass
+      pass
   data_sets = DataSets()
 
   TRAIN_SET = trainFileName
   TEST_SET  = testFileName
-  DATAA_NAME = 'dataApprox'
-  DATAT_NAME = 'dataTrue'
-  IMAGE_NAME = 'imagesTrue'
-  
+
+  if vessels:
+    IMAGE_NAME = 'smallPhan'
+  else:
+    IMAGE_NAME = 'imagesTrue'
+
   print('Start loading test data')
-  test_dataApr = extract_images(TEST_SET,DATAA_NAME)
-  test_dataTru   = extract_images(TEST_SET,DATAT_NAME)
-  test_imagTru   = extract_images(TEST_SET,IMAGE_NAME)
-  data_sets.test = DataSet(test_dataApr,test_dataTru,test_imagTru)
+  test_images = extract_images(TEST_SET, IMAGE_NAME)
+  data_sets.test = DataSet(test_images)
 
   print('Start loading training data')
-  train_dataApr = extract_images(TRAIN_SET,DATAA_NAME)
-  train_dataTru   = extract_images(TRAIN_SET,DATAT_NAME)
-  train_imagTru   = extract_images(TRAIN_SET,IMAGE_NAME)
-  data_sets.train = DataSet(train_dataApr,train_dataTru,train_imagTru)
+  train_images= extract_images(TRAIN_SET, IMAGE_NAME)
+  data_sets.train = DataSet(train_images)
 
   return data_sets

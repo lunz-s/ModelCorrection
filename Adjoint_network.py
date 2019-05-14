@@ -55,7 +55,8 @@ class TwoNets(model_correction):
         self.data_term = tf.placeholder(shape=[None, self.measurement_size[0], self.measurement_size[1], 1], dtype=tf.float32)
 
         # methode to get the initial guess in tf
-        self.x_ini = multiply_adjoint(self.data_term, self.m_appr)
+        self.measurement = multiply_adjoint(self.input_image, self.m_true)
+        self.x_ini = multiply_adjoint(self.measurement, self.m_appr)
 
         # Compute the corresponding measurements with the true and approximate operators
         self.true_y = multiply(self.input_image, self.m_true)
@@ -162,8 +163,8 @@ class TwoNets(model_correction):
         if lam is None:
             lam = self.lam
 
-        appr, true, image = self.data_sets.train.next_batch(self.batch_size)
-        x = self.sess.run(self.x_ini, feed_dict={self.data_term: true})
+        image = self.data_sets.train.next_batch(self.batch_size)
+        x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})
 
         for k in range(recursion):
             self.sess.run(self.optimizer, feed_dict={self.input_image: x, self.data_term: true,
@@ -178,8 +179,8 @@ class TwoNets(model_correction):
             x = self.update(x, update, TV_gradient=tv_grad, lam=lam, step_size=steps_size, positivity=True)
 
     def log(self, recursions, steps_size):
-        appr, true, image = self.data_sets.test.next_batch(self.batch_size)
-        x = self.sess.run(self.x_ini, feed_dict={self.data_term: true})
+        image = self.data_sets.test.next_batch(self.batch_size)
+        x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})
 
         iteration, summary = self.sess.run([self.global_step, self.merged],
                     feed_dict={self.input_image: x, self.data_term: true})
@@ -187,8 +188,9 @@ class TwoNets(model_correction):
 
 
     def log_optimization(self, recursions, step_size, lam, positivity = True):
-        appr, true, image = self.data_sets.test.next_batch(self.batch_size)
-        step, x = self.sess.run([self.global_step, self.x_ini], feed_dict={self.data_term: true})
+        image = self.data_sets.test.next_batch(self.batch_size)
+        x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})
+        step = self.sess.run(self.global_step)
         writer = tf.summary.FileWriter(self.path + 'Logs/Iteration_{}/Lambda_{}'.format(step, lam))
         for k in range(recursions):
             summary, data_grad, TV_grad = self.sess.run([self.merged_opt, self.correct_adj, self.TV_grad],
@@ -200,8 +202,8 @@ class TwoNets(model_correction):
         writer.close()
 
     def log_gt_optimization(self, recursions, step_size, lam, positivity=True):
-        appr, true, image = self.data_sets.test.next_batch(self.batch_size)
-        step, x = self.sess.run([self.global_step, self.x_ini], feed_dict={self.data_term: true})
+        image = self.data_sets.test.next_batch(self.batch_size)
+        x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})
         writer = tf.summary.FileWriter(self.path + 'Logs/GroundTruth/Lambda_{}'.format(lam))
         for k in range(recursions):
             summary, data_grad, TV_grad = self.sess.run([self.merged_opt, self.true_grad, self.TV_grad],
@@ -213,8 +215,8 @@ class TwoNets(model_correction):
         writer.close()
 
     def log_approx_optimization(self, recursions, step_size, lam, positivity=True):
-        appr, true, image = self.data_sets.test.next_batch(self.batch_size)
-        step, x = self.sess.run([self.global_step, self.x_ini], feed_dict={self.data_term: true})
+        image = self.data_sets.test.next_batch(self.batch_size)
+        x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})
         writer = tf.summary.FileWriter(self.path + 'Logs/ApproxUncorrected/Lambda_{}'.format(lam))
         for k in range(recursions):
             summary, data_grad, TV_grad = self.sess.run([self.merged_opt, self.approx_grad, self.TV_grad],
