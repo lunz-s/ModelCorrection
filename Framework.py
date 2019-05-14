@@ -277,8 +277,8 @@ class model_correction(np_operator):
 
     def __init__(self, path, data_sets, experiment_name = 'default_experiment'):
         self.experiment_name = experiment_name
-        self.image_size = data_sets.train.image_resolution
-        self.measurement_size = data_sets.train.y_resolution
+        self.image_size = (64,64)
+        self.measurement_size = (64,64)
         super(model_correction, self).__init__(self.measurement_size, self.measurement_size)
         self.data_sets = data_sets
         self.path = path+self.experiment_name+'/'
@@ -288,106 +288,3 @@ class model_correction(np_operator):
         # start tensorflow sesssion
         self.sess = tf.InteractiveSession()
         self.global_step = tf.Variable(0, name='global_step', trainable=False)
-
-
-    @abstractmethod
-    def train(self, recursions, step_size, learning_rate):
-        # recursions defines the amount of steps of gradient descent to perform over the data term while training
-        pass
-
-    @abstractmethod
-    def log(self, step_size, recursions):
-        pass
-
-
-# Class that handels the datasets and training
-class framework(object):
-    # the data set name determines the saving folder and where to look for training data
-    data_set_name = 'balls64'
-    # the name of the matrix file to simulate the true forward operator
-    matrix = 'threshSingleMatrix4Py.mat'
-    # angular cut off
-    angle = 60
-    # tv parameter
-    tv_param = 0.001
-
-    def __init__(self, correction_model):
-        self.correction_model = correction_model
-        # finding the correct path extensions for saving models
-        name = platform.node()
-        path_prefix = ''
-        if name == 'motel':
-            path_prefix = '/local/scratch/public/sl767/ModelCorrection/'
-        else:
-            path_prefix = ''
-
-        # setting the training data
-        data_path = path_prefix + 'Data/{}/'.format(self.data_set_name)
-        train_append = 'trainDataSet.mat'
-        test_append = 'testDataSet.mat'
-        self.data_sets = PATdata.read_data_sets(data_path + train_append,
-                                                data_path + test_append)
-
-        # put folders for the network parameters in place
-        self.path = path_prefix + 'Saves/{}/'.format(self.data_set_name)
-
-        # get the image and data space sizes
-        self.image_size = self.data_sets.train.get_image_resolution()
-        self.measurement_size = self.data_sets.train.get_y_resolution()
-
-        # initializing the approximate PAT transform
-        kgridBack = fpat.kgrid(data_path + 'kgrid_small.mat')
-        kgridForw = fpat.kgrid(data_path + 'kgrid_smallForw.mat')
-        plain_pat_operator = fpat.fastPAT(kgridBack, kgridForw, self.angle)
-        self.appr_operator = approx_PAT_operator(plain_pat_operator, self.image_size, self.measurement_size)
-        self.appr_odl = as_odl_operator(self.appr_operator)
-
-        # initialize the correct PAT transform
-        matrix_path = path_prefix+'Data/Matrices/' + self.matrix
-        self.exact_operator = exact_PAT_operator(matrix_path, self.image_size, self.measurement_size)
-        self.exact_odl = as_odl_operator(self.exact_operator)
-
-        # initialize the correction operator
-        self.cor_operator = self.correction_model(self.path, self.image_size,
-                                                  self.measurement_size, self.appr_odl, self.data_sets)
-        self.cor_odl = as_odl_operator(self.cor_operator)
-
-    def train_correction(self, steps):
-        for k in range(steps):
-            self.cor_operator.train()
-            if k%20 == 0:
-                self.cor_operator.log()
-        self.cor_operator.save()
-
-    ####### TV reconstruction methods --- outdated!!!
-    @staticmethod
-    def _tv_reconstruction(y, start_point, operator, param=0.0001, steps=50):
-        space = operator.domain
-        ran = operator.range
-        # the operators
-        gradients = odl.Gradient(space, method='forward')
-        broad_op = odl.BroadcastOperator(operator, gradients)
-        # define empty functional to fit the chambolle_pock framework
-        g = odl.solvers.ZeroFunctional(broad_op.domain)
-
-        # the norms
-        l1_norm = param * odl.solvers.L1Norm(gradients.range)
-        l2_norm_squared = odl.solvers.L2NormSquared(ran).translated(y)
-        functional = odl.solvers.SeparableSum(l2_norm_squared, l1_norm)
-
-        tau = 10.0
-        sigma = 0.1
-        niter = steps
-
-        # find starting point
-        s = np.copy(start_point)
-        x = space.element(s)
-
-        # Run the optimization algoritm
-        # odl.solvers.chambolle_pock_solver(x, functional, g, broad_op, tau = tau, sigma = sigma, niter=niter)
-        odl.solvers.pdhg(x, functional, g, broad_op, tau=tau, sigma=sigma, niter=niter)
-        return x
-
-
-
-
