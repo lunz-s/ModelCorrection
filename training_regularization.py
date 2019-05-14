@@ -36,7 +36,7 @@ if 1:
 
     rate = 5e-5
     recursions = 1
-    step_size = 0.0
+    step_size = 0.1
     iterations = 5
 
     for i in range(iterations):
