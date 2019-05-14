@@ -28,15 +28,15 @@ exact = ExactPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTPUT
 
 
 lam = 0.001
+step_size = 0.1
 
 
-if 1:
+if 0:
     correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=lam, data_sets=data_sets,
                              experiment_name='RegularizedAdjoint')
 
     rate = 5e-5
     recursions = 1
-    step_size = 0.0
     iterations = 2
 
     for i in range(iterations):
