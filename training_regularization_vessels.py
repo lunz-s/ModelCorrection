@@ -37,7 +37,7 @@ if 1:
     rate = 5e-5
     recursions = 1
     step_size = 0.0
-    iterations = 5
+    iterations = 2
 
     for i in range(iterations):
         for k in range(1000):
