@@ -20,11 +20,11 @@ train_append = 'trainDataSet.mat'
 test_append = 'testDataSet.mat'
 data_sets = PATdata.read_data_sets(data_path + train_append, data_path + test_append)
 
-input_dim = data_sets.train.image_resolution
-output_dim = data_sets.train.y_resolution
+INPUT_DIM = (64,64)
+OUTPUT_DIM = (64,64)
 
-approx = ApproxPAT(matrix_path=matrix_path, input_dim=input_dim, output_dim=output_dim)
-exact = ExactPAT(matrix_path=matrix_path, input_dim=input_dim, output_dim=output_dim)
+approx = ApproxPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTPUT_DIM)
+exact = ExactPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTPUT_DIM)
 
 
 lam = 0.001
