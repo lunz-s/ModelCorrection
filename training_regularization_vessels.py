@@ -27,12 +27,12 @@ approx = ApproxPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTP
 exact = ExactPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTPUT_DIM)
 
 
-lam = 0.001
+TV = 0.001
 step_size = 0.1
 
 
 if 1:
-    correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=lam, data_sets=data_sets,
+    correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
                              experiment_name='RegularizedAdjoint')
 
     rate = 5e-5
@@ -51,12 +51,12 @@ if 1:
     correction.log_gt_optimization(recursions=100, step_size=step_size, lam=0.0)
     correction.log_approx_optimization(recursions=100, step_size=step_size, lam=0.0)
 
-    correction.log_optimization(recursions=100, step_size=step_size, lam=lam)
-    correction.log_gt_optimization(recursions=100, step_size=step_size, lam=lam)
-    correction.log_approx_optimization(recursions=100, step_size=step_size, lam=lam)
+    correction.log_optimization(recursions=100, step_size=step_size, lam=TV)
+    correction.log_gt_optimization(recursions=100, step_size=step_size, lam=TV)
+    correction.log_approx_optimization(recursions=100, step_size=step_size, lam=TV)
 
 if 0:
-    correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=lam, data_sets=data_sets,
+    correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
                              experiment_name='RegularizedAdjointRekursive')
     rate = 5e-4
     recursions_max = 100

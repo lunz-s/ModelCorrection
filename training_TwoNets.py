@@ -27,11 +27,11 @@ approx = ApproxPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTP
 exact = ExactPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTPUT_DIM)
 
 
-lam = 0.001
+TV = 0.01
 
 
 if 1:
-    correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, lam=lam, data_sets=data_sets,
+    correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
                              experiment_name='TwoNets')
 
     rate = 5e-5
@@ -48,7 +48,7 @@ if 1:
     correction.save()
 
 if 0:
-    correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, lam=lam, data_sets=data_sets,
+    correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
                              experiment_name='TwoNetsRekursive')
     rate = 5e-4
     recursions_max = 100

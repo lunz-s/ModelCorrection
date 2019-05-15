@@ -27,11 +27,11 @@ approx = ApproxPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTP
 exact = ExactPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTPUT_DIM)
 
 
-lam = 0.001
+TV = 0.01
 
 
 if 1:
-    correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=lam, data_sets=data_sets,
+    correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
                              experiment_name='RegularizedAdjoint')
 
     rate = 5e-5
@@ -48,7 +48,7 @@ if 1:
     correction.save()
 
 if 0:
-    correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=lam, data_sets=data_sets,
+    correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
                              experiment_name='RegularizedAdjointRekursive')
     rate = 5e-4
     recursions_max = 100
