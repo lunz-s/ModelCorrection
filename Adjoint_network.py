@@ -179,7 +179,7 @@ class TwoNets(model_correction):
             x = self.update(x, update, TV_gradient=tv_grad, lam=lam, step_size=steps_size, positivity=True)
 
     def log(self, recursions, steps_size):
-        image = self.data_sets.test.next_batch(self.batch_size)
+        image = self.data_sets.test.default_batch(self.batch_size)
         x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})
 
         iteration, summary = self.sess.run([self.global_step, self.merged],
@@ -188,7 +188,7 @@ class TwoNets(model_correction):
 
 
     def log_optimization(self, recursions, step_size, lam, positivity = True):
-        image = self.data_sets.test.next_batch(self.batch_size)
+        image = self.data_sets.test.default_batch(self.batch_size)
         x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})
         step = self.sess.run(self.global_step)
         writer = tf.summary.FileWriter(self.path + 'Logs/Iteration_{}/Lambda_{}'.format(step, lam))
@@ -202,7 +202,7 @@ class TwoNets(model_correction):
         writer.close()
 
     def log_gt_optimization(self, recursions, step_size, lam, positivity=True):
-        image = self.data_sets.test.next_batch(self.batch_size)
+        image = self.data_sets.test.default_batch(self.batch_size)
         x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})
         writer = tf.summary.FileWriter(self.path + 'Logs/GroundTruth/Lambda_{}'.format(lam))
         for k in range(recursions):
@@ -215,7 +215,7 @@ class TwoNets(model_correction):
         writer.close()
 
     def log_approx_optimization(self, recursions, step_size, lam, positivity=True):
-        image = self.data_sets.test.next_batch(self.batch_size)
+        image = self.data_sets.test.default_batch(self.batch_size)
         x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})
         writer = tf.summary.FileWriter(self.path + 'Logs/ApproxUncorrected/Lambda_{}'.format(lam))
         for k in range(recursions):
