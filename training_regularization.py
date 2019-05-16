@@ -36,7 +36,7 @@ if 1:
 
     rate = 2e-4
     recursions = 1
-    step_size = 0.1
+    step_size = 0.2
     iterations = 5
 
     for i in range(iterations):
@@ -62,14 +62,14 @@ if 1:
                              experiment_name='RegularizedAdjointRekursive')
     rate = 2e-4
     recursions_max = 100
-    step_size = 0.1
+    step_size = 0.2
     iterations = 10
 
     if 1:
         for i in range(iterations):
             recursions = int((recursions_max * i / (iterations - 1)) + 1)
             print(recursions)
-            for k in range(500):
+            for k in range(100):
                 correction.train(recursions, step_size, learning_rate=rate)
                 if k % 20 == 0:
                     correction.log(recursions, step_size)

@@ -31,12 +31,12 @@ lam = 0.001
 
 
 if 1:
-    correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, lam=lam, data_sets=data_sets,
+    correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
                              experiment_name='TwoNets')
 
-    rate = 5e-5
+    rate = 2e-4
     recursions = 1
-    step_size = 0.1
+    step_size = 0.2
     iterations = 5
 
     for i in range(iterations):
@@ -47,33 +47,35 @@ if 1:
         # recursions = recursions+1
     correction.save()
 
-if 0:
-    correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, lam=lam, data_sets=data_sets,
+    correction.log_optimization(recursions=100, step_size=step_size, lam=0.0)
+    correction.log_gt_optimization(recursions=100, step_size=step_size, lam=0.0)
+    correction.log_approx_optimization(recursions=100, step_size=step_size, lam=0.0)
+
+    correction.log_optimization(recursions=100, step_size=step_size, lam=TV)
+    correction.log_gt_optimization(recursions=100, step_size=step_size, lam=TV)
+    correction.log_approx_optimization(recursions=100, step_size=step_size, lam=TV)
+    correction.end()
+
+
+if 1:
+    correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
                              experiment_name='TwoNetsRekursive')
-    rate = 5e-4
+    rate = 2e-4
     recursions_max = 100
-    step_size = 0.1
+    step_size = 0.2
     iterations = 10
 
     if 1:
         for i in range(iterations):
             recursions = int((recursions_max * i / (iterations - 1)) + 1)
             print(recursions)
-            for k in range(300):
+            for k in range(100):
                 correction.train(recursions, step_size, learning_rate=rate)
                 if k % 20 == 0:
                     correction.log(recursions, step_size)
-            # recursions = recursions+1
+            print('Rekursionen: '+str(recursions))
             correction.save()
 
-
-correction.log_optimization(recursions=100, step_size=step_size, lam=0.0)
-correction.log_gt_optimization(recursions=100, step_size=step_size, lam=0.0)
-correction.log_approx_optimization(recursions=100, step_size=step_size, lam=0.0)
-
-correction.log_optimization(recursions=100, step_size=step_size, lam=lam)
-correction.log_gt_optimization(recursions=100, step_size=step_size, lam=lam)
-correction.log_approx_optimization(recursions=100, step_size=step_size, lam=lam)
-
-
-correction.end()
+    correction.log_optimization(recursions=100, step_size=step_size, lam=0.0)
+    correction.log_optimization(recursions=100, step_size=step_size, lam=TV)
+    correction.end()
