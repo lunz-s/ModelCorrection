@@ -27,7 +27,9 @@ approx = ApproxPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTP
 exact = ExactPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTPUT_DIM)
 
 
-lam = 0.001
+TV = 0.001
+steps = 100
+step_size = 0.2
 
 
 if 1:
@@ -36,7 +38,6 @@ if 1:
 
     rate = 2e-4
     recursions = 1
-    step_size = 0.2
     iterations = 5
 
     for i in range(iterations):
@@ -47,13 +48,13 @@ if 1:
         # recursions = recursions+1
     correction.save()
 
-    correction.log_optimization(recursions=100, step_size=step_size, lam=0.0)
-    correction.log_gt_optimization(recursions=100, step_size=step_size, lam=0.0)
-    correction.log_approx_optimization(recursions=100, step_size=step_size, lam=0.0)
+    correction.log_optimization(recursions=steps, step_size=step_size, lam=0.0)
+    correction.log_gt_optimization(recursions=steps, step_size=step_size, lam=0.0)
+    correction.log_approx_optimization(recursions=steps, step_size=step_size, lam=0.0)
 
-    correction.log_optimization(recursions=100, step_size=step_size, lam=TV)
-    correction.log_gt_optimization(recursions=100, step_size=step_size, lam=TV)
-    correction.log_approx_optimization(recursions=100, step_size=step_size, lam=TV)
+    correction.log_optimization(recursions=steps, step_size=step_size, lam=TV)
+    correction.log_gt_optimization(recursions=steps, step_size=step_size, lam=TV)
+    correction.log_approx_optimization(recursions=steps, step_size=step_size, lam=TV)
     correction.end()
 
 
@@ -62,7 +63,6 @@ if 1:
                              experiment_name='TwoNetsRekursive')
     rate = 2e-4
     recursions_max = 100
-    step_size = 0.2
     iterations = 10
 
     if 1:
@@ -76,6 +76,6 @@ if 1:
             print('Rekursionen: '+str(recursions))
             correction.save()
 
-    correction.log_optimization(recursions=100, step_size=step_size, lam=0.0)
-    correction.log_optimization(recursions=100, step_size=step_size, lam=TV)
+    correction.log_optimization(recursions=steps, step_size=step_size, lam=0.0)
+    correction.log_optimization(recursions=steps, step_size=step_size, lam=TV)
     correction.end()

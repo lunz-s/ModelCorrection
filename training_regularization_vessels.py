@@ -29,6 +29,7 @@ exact = ExactPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTPUT
 
 TV = 0.001
 step_size = 0.2
+step=100
 
 
 if 1:
