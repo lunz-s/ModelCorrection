@@ -281,6 +281,7 @@ class model_correction(np_operator):
         self.measurement_size = (64,64)
         super(model_correction, self).__init__(self.measurement_size, self.measurement_size)
         self.data_sets = data_sets
+        self.raw_path = path
         self.path = path+self.experiment_name+'/'
         self.generate_folders(self.path)
         self.UNet = self.get_network(channels=1)

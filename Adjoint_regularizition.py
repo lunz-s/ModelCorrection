@@ -3,8 +3,13 @@ from Framework import model_correction
 from Operators.networks import UNet
 import numpy as np
 
+
 def l2(tensor):
     return tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(tensor), axis=(1, 2, 3))))
+
+
+def l2_batch(tensor):
+    return tf.sqrt(tf.reduce_sum(tf.square(tensor), axis=(1, 2, 3)))
 
 
 class Regularized(model_correction):
@@ -136,6 +141,11 @@ class Regularized(model_correction):
             l.append(tf.summary.scalar('DataTerm_Approx', l2(direction)))
             l.append(tf.summary.scalar('DataTerm_True', l2(self.true_y-self.data_term)))
             l.append(tf.summary.scalar('TV_regularization', self.average_TV))
+
+            prod = tf.reduce_sum(tf.multiply(self.apr_x, self.true_grad), axis=(1,2,3))
+            norms = tf.multiply(l2_batch(self.apr_x), l2_batch(self.true_grad))
+            l.append(tf.summary.scalar('Angle', tf.reduce_mean(tf.divide(prod, norms))))
+
             l.append(tf.summary.image('True_Data', self.true_y, max_outputs=1))
             l.append(tf.summary.image('Network_Data', self.output, max_outputs=1))
             l.append(tf.summary.image('True_Gradient', self.true_x, max_outputs=1))
@@ -200,11 +210,9 @@ class Regularized(model_correction):
                                            feed_dict={self.input_image: x, self.data_term: true})
         self.writer.add_summary(summary, iteration)
 
-    def log_optimization(self, recursions, step_size, lam, positivity = True):
-        image = self.data_sets.train.default_batch(self.batch_size)
+    def log_optimization(self, image, recursions, step_size, lam, positivity = True):
         x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})
-        step= self.sess.run(self.global_step)
-        writer = tf.summary.FileWriter(self.path + 'Logs/Iteration_{}/Lambda_{}'.format(step, lam))
+        writer = tf.summary.FileWriter(self.raw_path + 'GradDesc/Lambda_{}/{}'.format(lam, self.experiment_name))
         for k in range(recursions):
             summary, data_grad, TV_grad = self.sess.run([self.merged_opt, self.apr_x, self.TV_grad],
                                feed_dict={self.input_image: x, self.data_term: true,
@@ -214,10 +222,9 @@ class Regularized(model_correction):
         writer.flush()
         writer.close()
 
-    def log_gt_optimization(self, recursions, step_size, lam, positivity=True):
-        image = self.data_sets.train.default_batch(self.batch_size)
+    def log_gt_optimization(self, image, recursions, step_size, lam, positivity=True):
         x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})
-        writer = tf.summary.FileWriter(self.path + 'Logs/GroundTruth/Lambda_{}'.format(lam))
+        writer = tf.summary.FileWriter(self.raw_path + 'GradDesc/Lambda_{}/GroundTruth'.format(lam))
         for k in range(recursions):
             summary, data_grad, TV_grad = self.sess.run([self.merged_opt, self.true_grad, self.TV_grad],
                                feed_dict={self.input_image: x, self.data_term: true,
@@ -227,10 +234,9 @@ class Regularized(model_correction):
         writer.flush()
         writer.close()
 
-    def log_approx_optimization(self, recursions, step_size, lam, positivity=True):
-        image = self.data_sets.train.default_batch(self.batch_size)
+    def log_approx_optimization(self, image, recursions, step_size, lam, positivity=True):
         x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})
-        writer = tf.summary.FileWriter(self.path + 'Logs/ApproxUncorrected/Lambda_{}'.format(lam))
+        writer = tf.summary.FileWriter(self.path + 'GradDesc/Lambda_{}/ApproxUncorrected'.format(lam))
         for k in range(recursions):
             summary, data_grad, TV_grad = self.sess.run([self.merged_opt, self.approx_grad, self.TV_grad],
                                feed_dict={self.input_image: x, self.data_term: true,
