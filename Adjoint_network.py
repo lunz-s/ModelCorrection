@@ -219,7 +219,7 @@ class TwoNets(model_correction):
 
     def log_approx_optimization(self, image, recursions, step_size, lam, positivity=True):
         x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})
-        writer = tf.summary.FileWriter(self.path + 'GradDesc/Lambda_{}/ApproxUncorrected'.format(lam))
+        writer = tf.summary.FileWriter(self.raw_path + 'GradDesc/Lambda_{}/ApproxUncorrected'.format(lam))
         for k in range(recursions):
             summary, data_grad, TV_grad = self.sess.run([self.merged_opt, self.approx_grad, self.TV_grad],
                                feed_dict={self.input_image: x, self.data_term: true,
