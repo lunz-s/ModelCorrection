@@ -28,7 +28,7 @@ approx = ApproxPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTP
 exact = ExactPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTPUT_DIM)
 
 
-TV = 0.01
+TV = 0.001
 step_size = 0.2
 image = data_sets.test.default_batch(16)
 
