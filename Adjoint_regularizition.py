@@ -148,7 +148,8 @@ class Regularized(model_correction):
             l.append(tf.summary.scalar('Angle', tf.reduce_mean(tf.divide(prod, norms))))
 
             # Checking the input variance
-            m,v = tf.nn.moments(l2_batch(self.input_image), axes=[0])
+            m = l2(self.input_image)
+            v = tf.reduce_mean(tf.square(l2_batch(self.input_image) - m))
             l.append(tf.summary.scalar('Mean_Image_Norm', m))
             l.append(tf.summary.scalar('Variance_Image_Norm', v))
 
