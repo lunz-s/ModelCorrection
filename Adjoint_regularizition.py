@@ -142,9 +142,18 @@ class Regularized(model_correction):
             l.append(tf.summary.scalar('DataTerm_True', l2(self.true_y-self.data_term)))
             l.append(tf.summary.scalar('TV_regularization', self.average_TV))
 
+            # Computing the angle
             prod = tf.reduce_sum(tf.multiply(self.apr_x, self.true_grad), axis=(1,2,3))
             norms = tf.multiply(l2_batch(self.apr_x), l2_batch(self.true_grad))
             l.append(tf.summary.scalar('Angle', tf.reduce_mean(tf.divide(prod, norms))))
+
+            # Checking the input variance
+            m,v = tf.nn.moments(l2_batch(self.input_image), axis=[0])
+            l.append(tf.summary.scalar('Mean_Image_Norm', m))
+            l.append(tf.summary.scalar('Variance_Image_Norm', v))
+
+            # Computing the average norm of the direction
+            l.append(tf.summary.scalar('Direction_Norm', l2(self.direction)))
 
             l.append(tf.summary.image('True_Data', self.true_y, max_outputs=1))
             l.append(tf.summary.image('Network_Data', self.output, max_outputs=1))
