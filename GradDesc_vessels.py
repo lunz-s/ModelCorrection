@@ -30,7 +30,12 @@ exact = ExactPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTPUT
 
 TV = 0.001
 step_size = 0.2
-image = data_sets.test.default_batch(16)
+training_data=True
+
+if not training_data:
+    image = data_sets.test.default_batch(16)
+else:
+    image = data_sets.train.default_batch(16)
 
 def log_reference(model):
     model.log_gt_optimization(image, recursions=100, step_size=step_size, lam=0.0)
@@ -40,8 +45,8 @@ def log_reference(model):
 
 
 def log(model):
-    model.log_optimization(image, recursions=100, step_size=step_size, lam=0.0)
-    model.log_optimization(image, recursions=100, step_size=step_size, lam=TV)
+    model.log_optimization(image, recursions=100, step_size=step_size, lam=0.0, training_data=training_data)
+    model.log_optimization(image, recursions=100, step_size=step_size, lam=TV, training_data=training_data)
 
 
 correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,

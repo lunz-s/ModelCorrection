@@ -210,9 +210,12 @@ class Regularized(model_correction):
                                            feed_dict={self.input_image: x, self.data_term: true})
         self.writer.add_summary(summary, iteration)
 
-    def log_optimization(self, image, recursions, step_size, lam, positivity = True):
+    def log_optimization(self, image, recursions, step_size, lam, positivity=True, training_data=False):
         x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})
-        writer = tf.summary.FileWriter(self.raw_path + 'GradDesc/Lambda_{}/{}'.format(lam, self.experiment_name))
+        if training_data:
+            writer = tf.summary.FileWriter(self.raw_path + 'GradDesc/Lambda_{}/TrainData/{}'.format(lam, self.experiment_name))
+        else:
+            writer = tf.summary.FileWriter(self.raw_path + 'GradDesc/Lambda_{}/{}'.format(lam, self.experiment_name))
         for k in range(recursions):
             summary, data_grad, TV_grad = self.sess.run([self.merged_opt, self.apr_x, self.TV_grad],
                                feed_dict={self.input_image: x, self.data_term: true,
