@@ -16,8 +16,8 @@ saves_path = prefix+'Saves/vessels/'
 print(saves_path)
 print(data_path)
 
-train_append = 'vesselBatch2D_train.mat'
-test_append = 'vesselBatch2D_test.mat'
+train_append = 'trainDataSet_VesselClean.mat'
+test_append = 'testDataSet_VesselClean.mat'
 data_sets = PATdata.read_data_sets(data_path + train_append, data_path + test_append, vessels=True)
 
 INPUT_DIM = (64,64)
@@ -48,13 +48,15 @@ if 1:
         # recursions = recursions+1
     correction.save()
 
-    correction.log_optimization(recursions=100, step_size=step_size, lam=0.0)
-    correction.log_gt_optimization(recursions=100, step_size=step_size, lam=0.0)
-    correction.log_approx_optimization(recursions=100, step_size=step_size, lam=0.0)
+    image = data_sets.test.default_batch(16)
 
-    correction.log_optimization(recursions=100, step_size=step_size, lam=TV)
-    correction.log_gt_optimization(recursions=100, step_size=step_size, lam=TV)
-    correction.log_approx_optimization(recursions=100, step_size=step_size, lam=TV)
+    correction.log_optimization(image=image, recursions=100, step_size=step_size, lam=0.0)
+    correction.log_gt_optimization(image=image, recursions=100, step_size=step_size, lam=0.0)
+    correction.log_approx_optimization(image=image, recursions=100, step_size=step_size, lam=0.0)
+
+    correction.log_optimization(image=image, recursions=100, step_size=step_size, lam=TV)
+    correction.log_gt_optimization(image=image, recursions=100, step_size=step_size, lam=TV)
+    correction.log_approx_optimization(image=image, recursions=100, step_size=step_size, lam=TV)
     correction.end()
 
 
@@ -76,8 +78,10 @@ if 1:
             print('Rekursionen: '+str(recursions))
             correction.save()
 
-    correction.log_optimization(recursions=100, step_size=step_size, lam=0.0)
-    correction.log_optimization(recursions=100, step_size=step_size, lam=TV)
+    image = data_sets.test.default_batch(16)
+
+    correction.log_optimization(image=image, recursions=100, step_size=step_size, lam=0.0)
+    correction.log_optimization(image=image, recursions=100, step_size=step_size, lam=TV)
     correction.end()
 
 

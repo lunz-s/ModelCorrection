@@ -59,7 +59,7 @@ class TwoNets(model_correction):
 
         # methode to get the initial guess in tf
         self.measurement = multiply(self.input_image, self.m_true)
-        self.x_ini = multiply_adjoint(self.measurement, self.m_appr)
+        self.x_ini = 4.0*multiply_adjoint(self.measurement, self.m_appr)
 
         # Compute the corresponding measurements with the true and approximate operators
         self.true_y = multiply(self.input_image, self.m_true)
