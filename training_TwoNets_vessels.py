@@ -18,7 +18,7 @@ print(data_path)
 
 train_append = 'trainDataSet_VesselClean.mat'
 test_append = 'testDataSet_VesselClean.mat'
-data_sets = PATdata.read_data_sets(data_path + train_append, data_path + test_append, vessels=True)
+data_sets = PATdata.read_data_sets(data_path + train_append, data_path + test_append, vessels=False)
 
 INPUT_DIM = (64,64)
 OUTPUT_DIM = (64,64)
