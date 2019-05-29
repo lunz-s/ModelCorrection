@@ -4,6 +4,8 @@ import h5py
 
 def extract_images(filename, imageName):
   """Extract the images into a 3D uint8 numpy array [index, y, x, depth]."""
+  print(filename)
+  print(imageName)
   fData = h5py.File(filename,'r')
   inData = fData.get(imageName)  
       
