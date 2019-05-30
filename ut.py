@@ -10,17 +10,17 @@ def ident(batch):
 def flipud(batch):
     res = np.zeros(shape=batch.shape)
     for k in range(batch.shape[0]):
-        res[k,...,0] = np.flipud[k,...,0]
+        res[k,...,0] = np.flipud(batch[k,...,0])
     return res
 
 def fliplr(batch):
     res = np.zeros(shape=batch.shape)
     for k in range(batch.shape[0]):
-        res[k,...,0] = np.fliplr[k,...,0]
+        res[k,...,0] = np.fliplr(batch[k,...,0])
     return res
 
 def augmentation(batch):
-    sigma = ran.uniform(0,4)
+    sigma = ran.uniform(0,5)
     aug = edf.deform_random_grid(batch, axis=(1, 2), sigma=sigma, points=4)
     up = [ident, flipud]
     lr = [ident, fliplr]
