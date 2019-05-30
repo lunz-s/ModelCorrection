@@ -133,8 +133,9 @@ class Regularized(model_correction):
             l = []
             self.ground_truth = tf.placeholder(shape=[None, self.image_size[0], self.image_size[1], 1], dtype=tf.float32)
             l.append(tf.summary.scalar('Loss_Adjoint', self.loss_adj))
-            tf.summary.scalar('Relative_Loss_Adjoint', self.loss_adj/l2(self.true_x))
+            l.append(tf.summary.scalar('Relative_Loss_Adjoint', self.loss_adj/l2(self.true_x)))
             l.append(tf.summary.scalar('Loss_Forward', self.l2))
+            l.append(tf.summary.scalar('Relative_Loss_Forward', self.l2/l2(self.true_y)))
             l.append(tf.summary.scalar('Loss_Gradient', self.gradient_loss))
             self.quality = l2(self.input_image - self.ground_truth)
             l.append(tf.summary.scalar('Quality', self.quality))

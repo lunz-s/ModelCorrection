@@ -124,8 +124,9 @@ class TwoNets(model_correction):
             l = []
             self.ground_truth = tf.placeholder(shape=[None, self.image_size[0], self.image_size[1], 1], dtype=tf.float32)
             l.append(tf.summary.scalar('Loss_Adjoint', self.l2_adj))
-            tf.summary.scalar('Relative_Loss_Adjoint', self.l2_adj/l2(self.true_x))
+            l.append(tf.summary.scalar('Relative_Loss_Adjoint', self.l2_adj/l2(self.true_x)))
             l.append(tf.summary.scalar('Loss_Forward', self.l2))
+            l.append(tf.summary.scalar('Relative_Loss_Forward', self.l2/l2(self.true_y)))
             self.quality = l2(self.input_image - self.ground_truth)
             l.append(tf.summary.scalar('Quality', self.quality))
             l.append(tf.summary.scalar('DataTerm_Approx', l2(direction)))
