@@ -196,10 +196,12 @@ class Regularized(model_correction):
             result = result[0, ...]
         return result
 
-    def train(self, recursions, step_size, learning_rate, lam=None):
+    def train(self, recursions, step_size, learning_rate, lam=None, augmentation=None):
         if lam is None:
             lam=self.lam
         image = self.data_sets.train.next_batch(self.batch_size)
+        if not augmentation is None:
+            image = augmentation(image)
         x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})
 
         for k in range(recursions):
