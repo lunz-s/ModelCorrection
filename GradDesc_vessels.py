@@ -17,9 +17,9 @@ saves_path = prefix+'Saves/vessels/'
 print(saves_path)
 print(data_path)
 
-train_append = 'vesselBatch2D_train.mat'
-test_append = 'vesselBatch2D_test.mat'
-data_sets = PATdata.read_data_sets(data_path + train_append, data_path + test_append, vessels=True)
+train_append = 'trainDataSet_VesselClean.mat'
+test_append = 'testDataSet_VesselClean.mat'
+data_sets = PATdata.read_data_sets(data_path + train_append, data_path + test_append, vessels=False)
 
 INPUT_DIM = (64,64)
 OUTPUT_DIM = (64,64)
