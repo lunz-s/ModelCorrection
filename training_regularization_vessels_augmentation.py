@@ -65,7 +65,7 @@ if 1:
     correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
                              experiment_name='RegularizedAdjointRekursiveAugmented')
     rate = 2e-4
-    recursions_max = 100
+    recursions_max = 150
     iterations = 10
 
     if 1:
