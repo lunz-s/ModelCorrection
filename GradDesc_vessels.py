@@ -30,12 +30,13 @@ exact = ExactPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTPUT
 
 TV = 0.001
 step_size = 0.2
-training_data=True
+training_data = False
+starting_index = 70
 
 if training_data:
     image = data_sets.train.default_batch(16)
 else:
-    image = data_sets.test.default_batch(16)
+    image = data_sets.test.default_batch(16, starting_index=starting_index)
 
 def log_reference(model):
     model.log_gt_optimization(image, recursions=100, step_size=step_size, lam=0.0)

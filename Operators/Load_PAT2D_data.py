@@ -69,8 +69,8 @@ class DataSet(object):
     end = self._index_in_epoch
     return np.expand_dims(self._images[start:end], axis=-1)
 
-  def default_batch(self, batch_size):
-    return np.expand_dims(self._images[:batch_size], axis=-1)
+  def default_batch(self, batch_size, starting_index=0):
+    return np.expand_dims(self._images[starting_index:(starting_index+batch_size)], axis=-1)
 
 
 def read_data_sets(trainFileName, testFileName, vessels=False):
