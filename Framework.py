@@ -134,10 +134,16 @@ class approx_PAT_matrix(np_operator):
     def evaluate(self, y):
         y = np.flipud(np.asarray(y))
         if len(y.shape) == 4:
-            res = np.zeros(shape=(y.shape[0], self.output_dim[0], self.output_dim[1], 1))
-            for k in range(y.shape[0]):
-                res[k,..., 0] = np.reshape(np.matmul(self.m, np.reshape(y[k,..., 0], self.input_sq)),
-                                        [self.output_dim[0], self.output_dim[1]])
+            # res = np.zeros(shape=(y.shape[0], self.output_dim[0], self.output_dim[1], 1))
+            # for k in range(y.shape[0]):
+            #     res[k,...,0] = np.reshape(np.matmul(self.m, np.reshape(y[k,...,0], self.input_sq)),
+            #                             [self.output_dim[0], self.output_dim[1]])
+            # return res
+            batch = y.shape[0]
+            flat = np.reshape(y, (batch, self.input_sq))
+            res = np.transpose(np.matmul(self.m, np.transpose(flat)))
+            return np.reshape(np.asarray(res), (batch, self.output_dim[0], self.output_dim[1], 1))
+
         elif len(y.shape) == 2:
             res = np.reshape(np.matmul(self.m, np.reshape(y, self.input_sq)), [self.output_dim[0], self.output_dim[1]])
         else:
@@ -147,11 +153,15 @@ class approx_PAT_matrix(np_operator):
     # matrix multiplication with the adjoint of the matrix
     def differentiate(self, point, direction):
         if len(direction.shape) == 4:
-            res = np.zeros(shape=(direction.shape[0], self.input_dim[0], self.input_dim[1], 1))
-            for k in range(direction.shape[0]):
-                res[k,...,0] = np.flipud(np.reshape(np.matmul(np.transpose(self.m),
-                                                            np.reshape(np.asarray(direction[k,...,0]), self.output_sq)),
-                                                            [self.input_dim[0], self.input_dim[1]]))
+            # res = np.zeros(shape=(direction.shape[0], self.input_dim[0], self.input_dim[1], 1))
+            # for k in range(direction.shape[0]):
+            #     res[k,...,0] = np.flipud(np.reshape(np.matmul(np.transpose(self.m),
+            #                                                 np.reshape(np.asarray(direction[k,...,0]), self.output_sq)),
+            #                                                 [self.input_dim[0], self.input_dim[1]]))
+            batch = direction.shape[0]
+            inp = np.reshape(np.asarray(direction), (batch, self.output_sq))
+            res = np.transpose(np.matmul(np.transpose(self.m), np.transpose(inp)))
+            return np.flipud(np.reshape(np.asarray(res), [batch, self.input_dim[0], self.input_dim[1], 1]))
         elif len(direction.shape) == 2:
             res = np.flipud(np.reshape(np.matmul(np.transpose(self.m), np.reshape(np.asarray(direction), self.output_sq)),
                                        [self.input_dim[0], self.input_dim[1]]))
@@ -195,10 +205,14 @@ class exact_PAT_operator(np_operator):
     def evaluate(self, y):
         y = np.flipud(np.asarray(y))
         if len(y.shape) == 4:
-            res = np.zeros(shape=(y.shape[0], self.output_dim[0], self.output_dim[1], 1))
-            for k in range(y.shape[0]):
-                res[k,...,0] = np.reshape(np.matmul(self.m, np.reshape(y[k,...,0], self.input_sq)),
-                                        [self.output_dim[0], self.output_dim[1]])
+            # res = np.zeros(shape=(y.shape[0], self.output_dim[0], self.output_dim[1], 1))
+            # for k in range(y.shape[0]):
+            #     res[k,...,0] = np.reshape(np.matmul(self.m, np.reshape(y[k,...,0], self.input_sq)),
+            #                             [self.output_dim[0], self.output_dim[1]])
+            batch = y.shape[0]
+            flat = np.reshape(y, (batch, self.input_sq))
+            res = np.transpose(np.matmul(self.m, np.transpose(flat)))
+            return np.reshape(np.asarray(res), (batch, self.output_dim[0], self.output_dim[1], 1))
         elif len(y.shape) == 2:
             res = np.reshape(np.matmul(self.m, np.reshape(y, self.input_sq)), [self.output_dim[0], self.output_dim[1]])
         else:
@@ -209,10 +223,14 @@ class exact_PAT_operator(np_operator):
     def differentiate(self, point, direction):
         if len(direction.shape) == 4:
             res = np.zeros(shape=(direction.shape[0], self.input_dim[0], self.input_dim[1], 1))
-            for k in range(direction.shape[0]):
-                res[k,...,0] = np.flipud(np.reshape(np.matmul(np.transpose(self.m),
-                                                            np.reshape(np.asarray(direction[k,...,0]), self.output_sq)),
-                                                            [self.input_dim[0], self.input_dim[1]]))
+            # for k in range(direction.shape[0]):
+            #             #     res[k,...,0] = np.flipud(np.reshape(np.matmul(np.transpose(self.m),
+            #             #                                                 np.reshape(np.asarray(direction[k,...,0]), self.output_sq)),
+            #             #                                                 [self.input_dim[0], self.input_dim[1]]))
+            batch = direction.shape[0]
+            inp = np.reshape(np.asarray(direction), (batch, self.output_sq))
+            res = np.transpose(np.matmul(np.transpose(self.m), np.transpose(inp)))
+            return np.flipud(np.reshape(np.asarray(res), [batch, self.input_dim[0], self.input_dim[1], 1]))
         elif len(direction.shape) == 2:
             res = np.flipud(np.reshape(np.matmul(np.transpose(self.m), np.reshape(np.asarray(direction), self.output_sq)),
                                        [self.input_dim[0], self.input_dim[1]]))
@@ -245,11 +263,15 @@ class model_correction(np_operator):
         print('Progress saved')
 
     # load model from data
-    def load(self):
+    def load(self, savepoint=None):
         saver = tf.train.Saver()
         if os.listdir(self.path+'Data/'):
             print(self.path)
-            saver.restore(self.sess, tf.train.latest_checkpoint(self.path+'Data/'))
+            if savepoint is None:
+                saver.restore(self.sess, tf.train.latest_checkpoint(self.path+'Data/'))
+            else:
+                saver.restore(self.sess, self.path + 'Data/' + savepoint)
+                print(f'Restored Savepoint {savepoint}')
             print('Save restored')
         else:
             print('No save found')
@@ -275,7 +297,7 @@ class model_correction(np_operator):
             raise ValueError
         return array, changed
 
-    def __init__(self, path, data_sets, experiment_name = 'default_experiment'):
+    def __init__(self, path, data_sets, experiment_name='default_experiment'):
         self.experiment_name = experiment_name
         self.image_size = (64,64)
         self.measurement_size = (64,64)

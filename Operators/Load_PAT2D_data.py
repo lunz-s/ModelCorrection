@@ -24,14 +24,25 @@ def extract_images(filename, imageName):
 
 class DataSet(object):
 
-  def __init__(self, images):
+  def __init__(self, images, flip90=False):
     """Construct a DataSet"""
 
     self._num_examples = images.shape[0]
 
+    if flip90:
+      res = self.rotate90(images)
+      images = np.concatenate([images, res], axis=0)
     self._images = images
+
     self._epochs_completed = 0
     self._index_in_epoch = 0
+
+  @staticmethod
+  def rotate90(images):
+    res = np.zeros(images.shape)
+    for k in range(images.shape[0]):
+      res[k,...] = np.rot90(images[k,...])
+    return res
 
   @property
   def image_resolution(self):
@@ -49,6 +60,10 @@ class DataSet(object):
   @property
   def epochs_completed(self):
     return self._epochs_completed
+
+  @property
+  def data(self):
+    return self._images
 
   def next_batch(self, batch_size):
     """Return the next `batch_size` examples from this data set."""
@@ -73,7 +88,7 @@ class DataSet(object):
     return np.expand_dims(self._images[starting_index:(starting_index+batch_size)], axis=-1)
 
 
-def read_data_sets(trainFileName, testFileName, vessels=False):
+def read_data_sets(trainFileName, testFileName, vessels=False, flip90=False):
   class DataSets(object):
       pass
   data_sets = DataSets()
@@ -88,10 +103,10 @@ def read_data_sets(trainFileName, testFileName, vessels=False):
 
   print('Start loading test data')
   test_images = extract_images(TEST_SET, IMAGE_NAME)
-  data_sets.test = DataSet(test_images)
+  data_sets.test = DataSet(test_images, flip90=flip90)
 
   print('Start loading training data')
   train_images= extract_images(TRAIN_SET, IMAGE_NAME)
-  data_sets.train = DataSet(train_images)
+  data_sets.train = DataSet(train_images, flip90=flip90)
 
   return data_sets

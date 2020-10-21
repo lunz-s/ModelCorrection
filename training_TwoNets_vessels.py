@@ -3,6 +3,7 @@ import Operators.Load_PAT2D_data as PATdata
 import platform
 from Framework import approx_PAT_matrix as ApproxPAT
 from Framework import exact_PAT_operator as ExactPAT
+from ut import augmentation
 
 if platform.node() == 'motel':
     prefix = '/local/scratch/public/sl767/ModelCorrection/'
@@ -18,7 +19,7 @@ print(data_path)
 
 train_append = 'trainDataSet_VesselClean.mat'
 test_append = 'testDataSet_VesselClean.mat'
-data_sets = PATdata.read_data_sets(data_path + train_append, data_path + test_append, vessels=False)
+data_sets = PATdata.read_data_sets(data_path + train_append, data_path + test_append, vessels=False, flip90=True)
 
 INPUT_DIM = (64,64)
 OUTPUT_DIM = (64,64)
@@ -27,20 +28,20 @@ approx = ApproxPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTP
 exact = ExactPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTPUT_DIM)
 
 
-TV = 0.001
-steps = 100
-step_size = 0.2
+TV = 7e-4
+noise_level = 1e-2
 
-
-if 1:
+if 0:
     correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
-                             experiment_name='TwoNets')
+                             experiment_name='TwoNetsTV', characteristic_scale=.25, noise_level=noise_level)
 
     rate = 2e-4
     recursions = 1
-    iterations = 5
+    step_size = 0.2
+    iterations = 30
 
     for i in range(iterations):
+        print(f'Iteration {i+1}')
         for k in range(1000):
             correction.train(recursions, step_size, learning_rate=rate)
             if k % 50 == 0:
@@ -48,33 +49,55 @@ if 1:
         # recursions = recursions+1
     correction.save()
 
-    image = data_sets.test.default_batch(16)
-
-    correction.log_optimization(image=image, recursions=steps, step_size=step_size, lam=0.0)
-    correction.log_optimization(image=image, recursions=steps, step_size=step_size, lam=TV)
+    # correction.log_optimization(recursions=100, step_size=step_size, lam=0.0)
+    # correction.log_gt_optimization(recursions=100, step_size=step_size, lam=0.0)
+    # correction.log_approx_optimization(recursions=100, step_size=step_size, lam=0.0)
+    #
+    # correction.log_optimization(recursions=100, step_size=step_size, lam=TV)
+    # correction.log_gt_optimization(recursions=100, step_size=step_size, lam=TV)
+    # correction.log_approx_optimization(recursions=100, step_size=step_size, lam=TV)
     correction.end()
 
 
 if 1:
     correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
-                             experiment_name='TwoNetsRekursive')
+                             experiment_name=f'TwoNetsRekursiveTV_{TV}', characteristic_scale=.25, noise_level=noise_level)
     rate = 2e-4
-    recursions_max = 100
-    iterations = 10
+    step_size = 0.2
+    iterations = 18
 
-    if 1:
-        for i in range(iterations):
-            recursions = int((recursions_max * i / (iterations - 1)) + 1)
-            print(recursions)
-            for k in range(100):
-                correction.train(recursions, step_size, learning_rate=rate)
+    print('PreTraining')
+    for k in range(3000):
+        correction.train(1, step_size, learning_rate=rate, train_every_n=1)
+    print('PreTraining Done')
+    correction.save()
+
+    recursion_list= []
+
+    for i in range(iterations):
+        recursions = (i+1)**2
+        recursion_list.append(recursions)
+        print(f'Starting Iteration {i+1}, Max Recursions {recursions}')
+        for k in range(5):
+            for r in recursion_list:
+                train_every_n = int(r / 50) + 1
+                correction.train(recursions, step_size, learning_rate=rate, train_every_n=train_every_n)
                 if k % 20 == 0:
                     correction.log(recursions, step_size)
-            print('Rekursionen: '+str(recursions))
+
+        if i >= 15 and i % 5 == 0:
             correction.save()
 
-    image = data_sets.test.default_batch(16)
+    print(f'Final Training, Max Recursions {recursions}')
+    for k in range(20):
+        for r in recursion_list:
+            train_every_n = int(r / 50) + 1
+            correction.train(recursions, step_size, learning_rate=rate, train_every_n=train_every_n,
+                             augmentation=augmentation)
+            if k % 20 == 0:
+                correction.log(recursions, step_size)
+    correction.save()
 
-    correction.log_optimization(image=image, recursions=steps, step_size=step_size, lam=0.0)
-    correction.log_optimization(image=image, recursions=steps, step_size=step_size, lam=TV)
+    # correction.log_optimization(recursions=100, step_size=step_size, lam=0.0)
+    # correction.log_optimization(recursions=100, step_size=step_size, lam=TV)
     correction.end()

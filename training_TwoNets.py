@@ -27,19 +27,20 @@ approx = ApproxPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTP
 exact = ExactPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTPUT_DIM)
 
 
-TV = 0.01
+TV = 0.001
 
 
 if 1:
     correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
-                             experiment_name='TwoNets')
+                             experiment_name='TwoNetsOldNet')
 
     rate = 2e-4
     recursions = 1
     step_size = 0.2
-    iterations = 5
+    iterations = 10
 
     for i in range(iterations):
+        print(f'Iteration {i+1}')
         for k in range(1000):
             correction.train(recursions, step_size, learning_rate=rate)
             if k % 50 == 0:
@@ -47,37 +48,48 @@ if 1:
         # recursions = recursions+1
     correction.save()
 
-    correction.log_optimization(recursions=100, step_size=step_size, lam=0.0)
-    correction.log_gt_optimization(recursions=100, step_size=step_size, lam=0.0)
-    correction.log_approx_optimization(recursions=100, step_size=step_size, lam=0.0)
-
-    correction.log_optimization(recursions=100, step_size=step_size, lam=TV)
-    correction.log_gt_optimization(recursions=100, step_size=step_size, lam=TV)
-    correction.log_approx_optimization(recursions=100, step_size=step_size, lam=TV)
+    # correction.log_optimization(recursions=100, step_size=step_size, lam=0.0)
+    # correction.log_gt_optimization(recursions=100, step_size=step_size, lam=0.0)
+    # correction.log_approx_optimization(recursions=100, step_size=step_size, lam=0.0)
+    #
+    # correction.log_optimization(recursions=100, step_size=step_size, lam=TV)
+    # correction.log_gt_optimization(recursions=100, step_size=step_size, lam=TV)
+    # correction.log_approx_optimization(recursions=100, step_size=step_size, lam=TV)
     correction.end()
 
 
-if 1:
+if 0:
     correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
-                             experiment_name='TwoNetsRekursive')
+                             experiment_name='TwoNetsRekursiveOldNet', characteristic_scale=.34)
     rate = 2e-4
-    recursions_max = 100
     step_size = 0.2
-    iterations = 10
+    iterations = 60
+
+    # print('PreTraining')
+    # for k in range(3000):
+    #     correction.train(1, step_size, learning_rate=rate, train_every_n=1)
+    # print('PreTraining Done')
+    # correction.save()
+
+    recursion_list= []
 
     if 1:
         for i in range(iterations):
-            recursions = int((recursions_max * i / (iterations - 1)) + 1)
-            print(recursions)
-            for k in range(100):
-                correction.train(recursions, step_size, learning_rate=rate)
-                if k % 20 == 0:
-                    correction.log(recursions, step_size)
-            print('Rekursionen: '+str(recursions))
-            correction.save()
+            recursions = (i+1)**2
+            recursion_list.append(recursions)
+            print(f'Starting Iteration {i+1}, Max Recursions {recursions}')
+            for k in range(1):
+                for r in recursion_list:
+                    train_every_n = int(r / 50) + 1
+                    correction.train(recursions, step_size, learning_rate=rate, train_every_n=train_every_n)
+                    if k % 20 == 0:
+                        correction.log(recursions, step_size)
 
-    correction.log_optimization(recursions=100, step_size=step_size, lam=0.0)
-    correction.log_optimization(recursions=100, step_size=step_size, lam=TV)
+            if i >= 15 and i % 5 == 0:
+                correction.save()
+
+    # correction.log_optimization(recursions=100, step_size=step_size, lam=0.0)
+    # correction.log_optimization(recursions=100, step_size=step_size, lam=TV)
     correction.end()
 
 

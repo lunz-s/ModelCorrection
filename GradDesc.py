@@ -28,7 +28,7 @@ approx = ApproxPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTP
 exact = ExactPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTPUT_DIM)
 
 
-TV = 0.01
+TV = 0.001
 step_size = 0.2
 image = data_sets.test.default_batch(16)
 
@@ -44,21 +44,21 @@ def log(model):
     model.log_optimization(image, recursions=100, step_size=step_size, lam=TV)
 
 
-correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
-                         experiment_name='RegularizedAdjoint')
-log_reference(correction)
-log(correction)
-correction.end()
-
-correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
-                         experiment_name='RegularizedAdjointRekursive')
-log(correction)
-correction.end()
-
-correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
-                     experiment_name='TwoNets')
-log(correction)
-correction.end()
+# correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
+#                          experiment_name='RegularizedAdjoint')
+# log_reference(correction)
+# log(correction)
+# correction.end()
+#
+# correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
+#                          experiment_name='RegularizedAdjointRekursive')
+# log(correction)
+# correction.end()
+#
+# correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
+#                      experiment_name='TwoNets')
+# log(correction)
+# correction.end()
 
 correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
                      experiment_name='TwoNetsRekursive')
