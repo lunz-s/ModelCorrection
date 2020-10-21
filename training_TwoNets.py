@@ -58,7 +58,7 @@ if 1:
     correction.end()
 
 
-if 0:
+if 1:
     correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
                              experiment_name='TwoNetsRekursiveOldNet', characteristic_scale=.34)
     rate = 2e-4

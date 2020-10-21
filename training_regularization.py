@@ -30,7 +30,7 @@ exact = ExactPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTPUT
 TV = 0.001
 
 
-if 0:
+if 01
     correction = Regularized(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
                              experiment_name='RegularizedAdjointOldNet')
 

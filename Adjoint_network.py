@@ -5,9 +5,6 @@ import numpy as np
 from ut import huber_TV
 from matplotlib import pyplot as plt
 
-### Warning ####
-# Unlike in the other implementations of the correction opertor,
-# here the correction operator already includes the approximate forward operator!
 
 def l2(tensor):
     return tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(tensor), axis=(1, 2, 3))))
@@ -251,14 +248,6 @@ class TwoNets(model_correction):
                                               self.ground_truth: image, self.is_train: False})
             x = self.update(x, update, TV_gradient=tv_grad, lam=lam, step_size=steps_size, positivity=True)
 
-    def log(self, recursions, steps_size):
-        image = self.data_sets.test.default_batch(self.batch_size)
-        x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})
-
-        iteration, summary = self.sess.run([self.global_step, self.merged],
-                    feed_dict={self.input_image: x, self.data_term: true, self.is_train: False})
-        self.writer.add_summary(summary, iteration)
-
 
     def log_optimization(self, image, recursions, step_size, lam, positivity=True, operator='Corrected', verbose=False, tensorboard=True, n_print=5):
         x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})
@@ -377,21 +366,6 @@ class TwoNets(model_correction):
 
         return res, x
 
-
-    def log_optimization_old(self, image, recursions, step_size, lam, positivity = True, training_data=False):
-        x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})
-        if training_data:
-            writer = tf.summary.FileWriter(self.raw_path + 'GradDesc/Lambda_{}/TrainData/{}'.format(lam, self.experiment_name))
-        else:
-            writer = tf.summary.FileWriter(self.raw_path + 'GradDesc/Lambda_{}/{}'.format(lam, self.experiment_name))
-        for k in range(recursions):
-            summary, data_grad, TV_grad = self.sess.run([self.merged_opt, self.correct_adj, self.TV_grad],
-                               feed_dict={self.input_image: x, self.data_term: true,
-                                          self.ground_truth: image, self.is_train: False})
-            writer.add_summary(summary, k)
-            x = self.update(x, data_grad, TV_grad, lam=lam, step_size=step_size, positivity=positivity)
-        writer.flush()
-        writer.close()
 
     def log_gt_optimization(self, image, recursions, step_size, lam, positivity=True):
         x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})

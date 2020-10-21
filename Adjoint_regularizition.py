@@ -241,31 +241,6 @@ class Regularized(model_correction):
 
             x = self.update(x, update, TV_gradient=tv_grad, lam=lam, step_size=step_size, positivity=True)
 
-    def log(self, recursions, step_size):
-        image = self.data_sets.train.default_batch(self.batch_size)
-        x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})
-
-        for k in range(1):
-            update = self.sess.run(self.correct_adj, feed_dict={self.input_image: x, self.data_term: true, self.is_train: False})
-            x = x-2*step_size*update
-        iteration, summary = self.sess.run([self.global_step, self.merged],
-                                           feed_dict={self.input_image: x, self.data_term: true, self.is_train: False})
-        self.writer.add_summary(summary, iteration)
-
-    # def log_optimization(self, image, recursions, step_size, lam, positivity=True, training_data=False):
-    #     x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})
-    #     if training_data:
-    #         writer = tf.summary.FileWriter(self.raw_path + 'GradDesc/Lambda_{}/TrainData/{}'.format(lam, self.experiment_name))
-    #     else:
-    #         writer = tf.summary.FileWriter(self.raw_path + 'GradDesc/Lambda_{}/{}'.format(lam, self.experiment_name))
-    #     for k in range(recursions):
-    #         summary, data_grad, TV_grad = self.sess.run([self.merged_opt, self.apr_x, self.TV_grad],
-    #                            feed_dict={self.input_image: x, self.data_term: true,
-    #                                       self.ground_truth: image, self.is_train: False})
-    #         writer.add_summary(summary, k)
-    #         x = self.update(x, data_grad, TV_grad, lam=lam, step_size=step_size, positivity=positivity)
-    #     writer.flush()
-    #     writer.close()
 
     def log_optimization(self, image, recursions, step_size, lam, positivity=True, operator='Corrected', verbose=False, tensorboard=True, n_print=5):
         x, true = self.sess.run([self.x_ini, self.measurement], feed_dict={self.input_image: image})

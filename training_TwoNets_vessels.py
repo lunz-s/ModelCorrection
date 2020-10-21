@@ -31,7 +31,7 @@ exact = ExactPAT(matrix_path=matrix_path, input_dim=INPUT_DIM, output_dim=OUTPUT
 TV = 7e-4
 noise_level = 1e-2
 
-if 0:
+if 1:
     correction = TwoNets(path=saves_path, true_np=exact, appr_np=approx, lam=TV, data_sets=data_sets,
                              experiment_name='TwoNetsTV', characteristic_scale=.25, noise_level=noise_level)
 
