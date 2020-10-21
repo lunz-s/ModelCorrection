@@ -1,4 +1,4 @@
-# ModelCorrection
+# On learned operator correction in inverse problems
 
 This repository contains the code used in the paper [On learned operator correction in inverse problems](https://arxiv.org/abs/2005.07069).
 We investigate correcting for modelling errors in Photoacoustic Tomography (PAT) by training a neural network as operator correction. 
@@ -6,4 +6,4 @@ We investigate correcting for modelling errors in Photoacoustic Tomography (PAT)
 ### Running the code
 The files training_*.py contain the code to train the correction for all corrections introduced in the paper. In order to run the code locally, it is required to 
 change the paths for savepoints, operator models and data to the appropriate paths on your device. The operator models and data used in our experiments is
-contained in the 'Data' folder.
+contained in the 'Data' folder. The Evaluation notebook contains routines to evaluate the trained model and to create the figures displayed in the paper.
