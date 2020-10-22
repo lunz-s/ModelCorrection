@@ -5,5 +5,7 @@ We investigate correcting for modelling errors in Photoacoustic Tomography (PAT)
 
 ### Running the code
 The files training_*.py contain the code to train the correction for all corrections introduced in the paper. In order to run the code locally, it is required to 
-change the paths for savepoints, operator models and data to the appropriate paths on your device. The operator models and data used in our experiments is
-contained in the 'Data' folder. The Evaluation notebook contains routines to evaluate the trained model and to create the figures displayed in the paper.
+change the paths for savepoints, operator models and data to the appropriate paths on your device. The Evaluation notebook contains routines to evaluate the trained model and to create the figures displayed in the paper.
+
+### Data, Operators and Savepoints
+The data and operators can be downloaded from [figshare](https://figshare.com/s/2e1ccd5319d5728683d6).
